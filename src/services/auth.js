@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Proxy through /auth-api to avoid CORS (Vite proxy in dev, Vercel rewrites in prod)
-const AUTH_URL = '/auth-api';
+// In dev: Vite proxy. In prod: Vercel serverless function at /api/auth
+const AUTH_URL = '';
 
 const authApi = axios.create({
   baseURL: AUTH_URL,

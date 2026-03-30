@@ -1,11 +1,7 @@
 {
   "rewrites": [
     {
-      "source": "/auth-api/:path*",
-      "destination": "https://authentication-system-4svs.onrender.com/:path*"
-    },
-    {
-      "source": "/((?!assets/).*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
