@@ -24,7 +24,9 @@ export default function Login() {
     try {
       await login(username.trim(), password);
     } catch (err) {
-      setError(err.response?.data?.detail || err.response?.data?.error || t('loginFailed'));
+      const detail = err.response?.data?.detail;
+      const msg = typeof detail === 'string' ? detail : detail?.message || err.response?.data?.error || t('loginFailed');
+      setError(typeof msg === 'string' ? msg : t('loginFailed'));
       setLoading(false);
     }
   };

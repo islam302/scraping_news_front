@@ -33,7 +33,7 @@ export function useMission() {
           setLoading(false);
         }
       } catch (err) {
-        setError(err.response?.data?.error || err.response?.data?.detail || 'Failed to fetch mission status');
+        setError(err.response?.data?.error || (typeof err.response?.data?.detail === 'string' ? err.response.data.detail : err.response?.data?.detail?.message) || 'Failed to fetch mission status');
         stopPolling();
         setLoading(false);
       }
@@ -50,7 +50,7 @@ export function useMission() {
       setMission({ mission_id: data.mission_id, status: data.status, keyword });
       pollMission(data.mission_id);
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.detail || 'Failed to start scraping');
+      setError(err.response?.data?.error || (typeof err.response?.data?.detail === 'string' ? err.response.data.detail : err.response?.data?.detail?.message) || 'Failed to start scraping');
       setLoading(false);
     }
   }, [pollMission]);
@@ -70,7 +70,7 @@ export function useMission() {
         setLoading(false);
       }
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.detail || 'Failed to load mission');
+      setError(err.response?.data?.error || (typeof err.response?.data?.detail === 'string' ? err.response.data.detail : err.response?.data?.detail?.message) || 'Failed to load mission');
       setLoading(false);
     }
   }, [pollMission]);

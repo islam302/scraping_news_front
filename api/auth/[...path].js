@@ -1,24 +1,27 @@
 export default async function handler(req, res) {
-  const path = req.url.replace(/^\/api\/auth/, '');
+  // Extract the path after /api/auth
+  const url = new URL(req.url, `https://${req.headers.host}`);
+  const path = url.pathname.replace(/^\/api\/auth/, '');
   const targetUrl = `https://authentication-system-4svs.onrender.com/api/auth${path}`;
 
   try {
-    const headers = { 'Content-Type': 'application/json' };
-
     const fetchOptions = {
       method: req.method,
-      headers,
+      headers: { 'Content-Type': 'application/json' },
     };
 
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
+    if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
       fetchOptions.body = JSON.stringify(req.body);
     }
 
     const response = await fetch(targetUrl, fetchOptions);
-    const data = await response.json();
+    const text = await response.text();
 
-    res.status(response.status).json(data);
+    // Forward the response status and body
+    res.status(response.status);
+    res.setHeader('Content-Type', 'application/json');
+    res.end(text);
   } catch (error) {
-    res.status(502).json({ error: 'Auth service unavailable' });
+    res.status(502).json({ detail: 'Auth service unavailable' });
   }
 }
