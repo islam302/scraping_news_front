@@ -32,7 +32,7 @@ export default function Dashboard() {
 
           {error && (
             <div className="bg-accent-red/10 border border-accent-red/30 rounded-xl p-4 text-sm text-accent-red">
-              {error}
+              {t('scrapingFailedMsg')}
             </div>
           )}
 

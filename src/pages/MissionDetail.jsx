@@ -166,9 +166,9 @@ export default function MissionDetail() {
                 </div>
               )}
 
-              {mission.error && (
+              {mission.status === 'failed' && (
                 <div className="mt-4 bg-accent-red/10 border border-accent-red/30 rounded-lg p-3 text-sm text-accent-red">
-                  {mission.error}
+                  {t('scrapingFailedMsg')}
                 </div>
               )}
 
