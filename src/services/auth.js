@@ -1,9 +1,7 @@
 import axios from 'axios';
 
-// In dev, use Vite proxy to avoid CORS. In production, hit the auth server directly.
-const AUTH_URL = import.meta.env.DEV
-  ? '/auth-api'
-  : 'https://authentication-system-4svs.onrender.com';
+// Proxy through /auth-api to avoid CORS (Vite proxy in dev, Vercel rewrites in prod)
+const AUTH_URL = '/auth-api';
 
 const authApi = axios.create({
   baseURL: AUTH_URL,
