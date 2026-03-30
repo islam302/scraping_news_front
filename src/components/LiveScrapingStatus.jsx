@@ -77,9 +77,11 @@ export default function LiveScrapingStatus({ mission }) {
           }`} />
           <span className="text-sm font-semibold text-text-primary">{statusText}</span>
         </div>
-        <span className="text-sm text-text-secondary">
-          {displayPercent}% {t('complete')}
-        </span>
+        {displayPercent > 0 && (
+          <span className="text-sm text-text-secondary">
+            {displayPercent}% {t('complete')}
+          </span>
+        )}
       </div>
 
       <div className="w-full h-2.5 bg-dark-border rounded-full overflow-hidden mb-4">

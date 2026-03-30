@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Globe, FileText, Filter, Clock } from 'lucide-react';
+import { FileText, Filter, Clock } from 'lucide-react';
 import { useLang } from '../context/LangContext';
 
 const cardVariants = {
@@ -12,8 +12,6 @@ const cardVariants = {
 
 export default function StatsCards({ mission }) {
   const { t } = useLang();
-
-  const sourcesScanned = mission?.progress?.total || 0;
 
   let articlesFound = 0;
   if (mission?.ai_filter?.before) {
@@ -36,14 +34,13 @@ export default function StatsCards({ mission }) {
   }
 
   const stats = [
-    { icon: Globe, label: t('sourcesScanned'), value: String(sourcesScanned), color: 'text-accent-blue', bg: 'bg-accent-blue/10', glow: 'group-hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]' },
     { icon: FileText, label: t('articlesFound'), value: articlesFound.toLocaleString(), color: 'text-accent-green', bg: 'bg-accent-green/10', glow: 'group-hover:shadow-[0_0_20px_rgba(200,245,66,0.15)]' },
     { icon: Filter, label: t('relevantMatches'), value: String(relevantMatches), color: 'text-yellow-400', bg: 'bg-yellow-400/10', glow: 'group-hover:shadow-[0_0_20px_rgba(250,204,21,0.15)]' },
     { icon: Clock, label: t('processingTime'), value: processingTime, color: 'text-accent-purple', bg: 'bg-accent-purple/10', glow: 'group-hover:shadow-[0_0_20px_rgba(139,92,246,0.15)]' },
   ];
 
   return (
-    <div className="grid grid-cols-4 gap-4">
+    <div className="grid grid-cols-3 gap-4">
       {stats.map(({ icon: Icon, label, value, color, bg, glow }, i) => (
         <motion.div
           key={label}
