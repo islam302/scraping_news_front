@@ -43,10 +43,9 @@ export const deleteSite = async (siteId) => {
 
 // === Scraping ===
 
-export const startScraping = async (keyword, text, dateFilter = 'none') => {
+export const startScraping = async (keyword, dateFilter = 'none') => {
   const { data } = await api.post('/api/scrape/', {
     keyword,
-    text,
     date_filter: dateFilter,
   });
   return data;
