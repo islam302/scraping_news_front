@@ -25,7 +25,7 @@ function statusBadge(status, t) {
       return (<span className="flex items-center gap-1 text-xs font-medium text-accent-red bg-accent-red/10 px-2.5 py-1 rounded-full"><XCircle className="w-3 h-3" /> {t('failed')}</span>);
     case 'scraping':
     case 'filtering':
-      return (<span className="flex items-center gap-1 text-xs font-medium text-accent-blue bg-accent-blue/10 px-2.5 py-1 rounded-full"><Loader2 className="w-3 h-3 animate-spin" /> {status === 'scraping' ? t('extracting') : t('aiFilteringInProgress')}</span>);
+      return (<span className="flex items-center gap-1 text-xs font-medium text-accent-blue bg-accent-blue/10 px-2.5 py-1 rounded-full"><Loader2 className="w-3 h-3 animate-spin" /> <span className="hidden sm:inline">{status === 'scraping' ? t('extracting') : t('aiFilteringInProgress')}</span></span>);
     default:
       return (<span className="flex items-center gap-1 text-xs font-medium text-text-muted bg-dark-card-hover px-2.5 py-1 rounded-full"><Clock className="w-3 h-3" /> {t('pending')}</span>);
   }
@@ -70,18 +70,14 @@ export default function Tasks() {
   };
 
   const toggleSelectAll = () => {
-    if (selected.size === missions.length) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(missions.map((m) => m.mission_id)));
-    }
+    if (selected.size === missions.length) setSelected(new Set());
+    else setSelected(new Set(missions.map((m) => m.mission_id)));
   };
 
   const handleDeleteSelected = async () => {
     if (!window.confirm(t('deleteSelectedConfirm'))) return;
     setDeleting(true);
     try {
-      // API only supports delete-all, so we call it and remove selected from UI
       await deleteAllMissions();
       setMissions((prev) => prev.filter((m) => !selected.has(m.mission_id)));
       setSelected(new Set());
@@ -92,14 +88,16 @@ export default function Tasks() {
   const allSelected = missions.length > 0 && selected.size === missions.length;
 
   return (
-    <div className="flex-1 flex flex-col min-h-screen">
-      <Header breadcrumbs={[t('dashboard'), t('tasks')]} />
-      <div className="p-6">
+    <div className="flex-1 flex flex-col min-h-0">
+      <div className="hidden lg:block">
+        <Header breadcrumbs={[t('dashboard'), t('tasks')]} />
+      </div>
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         {/* Header */}
-        <motion.div className="flex items-center justify-between mb-6" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+        <motion.div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 sm:mb-6" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
           <div>
-            <h2 className="text-xl font-bold text-text-primary">{t('missionsHistory')}</h2>
-            <p className="text-sm text-text-secondary mt-1">
+            <h2 className="text-lg sm:text-xl font-bold text-text-primary">{t('missionsHistory')}</h2>
+            <p className="text-sm text-text-secondary mt-0.5">
               {selectionMode
                 ? `${selected.size} ${t('selected')}`
                 : `${missions.length} ${missions.length !== 1 ? t('missionsRecorded') : t('missionRecorded')}`
@@ -107,11 +105,10 @@ export default function Tasks() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {/* Select All */}
             {missions.length > 0 && (
               <motion.button
                 onClick={toggleSelectAll}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all duration-300 border ${
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm transition-all duration-300 border ${
                   allSelected
                     ? 'bg-accent-green/10 border-accent-green/30 text-accent-green'
                     : 'bg-dark-card border-dark-border text-text-secondary hover:text-text-primary hover:border-dark-card-hover'
@@ -124,17 +121,16 @@ export default function Tasks() {
                 }`}>
                   {allSelected && <Check className="w-3 h-3 text-dark-bg" />}
                 </div>
-                {t('selectAll')}
+                <span className="hidden sm:inline">{t('selectAll')}</span>
               </motion.button>
             )}
 
-            {/* Delete Selected */}
             <AnimatePresence>
               {selectionMode && (
                 <motion.button
                   onClick={handleDeleteSelected}
                   disabled={deleting}
-                  className="flex items-center gap-2 px-4 py-2 bg-accent-red/10 border border-accent-red/30 rounded-lg text-sm text-accent-red hover:bg-accent-red/20 hover:shadow-[0_0_15px_rgba(239,68,68,0.15)] transition-all duration-300 disabled:opacity-50"
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-accent-red/10 border border-accent-red/30 rounded-lg text-sm text-accent-red hover:bg-accent-red/20 transition-all duration-300 disabled:opacity-50"
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
@@ -142,7 +138,7 @@ export default function Tasks() {
                   whileTap={{ scale: 0.97 }}
                 >
                   {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                  {t('deleteSelected')} ({selected.size})
+                  <span className="hidden sm:inline">{t('deleteSelected')}</span> ({selected.size})
                 </motion.button>
               )}
             </AnimatePresence>
@@ -161,7 +157,7 @@ export default function Tasks() {
             <p className="text-xs text-text-muted mt-1">{t('noMissionsDesc')}</p>
           </motion.div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {missions.map((m, i) => {
               const isSelected = selected.has(m.mission_id);
               return (
@@ -171,40 +167,34 @@ export default function Tasks() {
                   initial="hidden"
                   animate="visible"
                   variants={listItemVariants}
-                  className={`bg-dark-card border rounded-xl p-4 flex items-center gap-3 hover:shadow-[0_0_15px_rgba(200,245,66,0.04)] transition-all duration-300 group cursor-pointer ${
+                  className={`bg-dark-card border rounded-xl p-3 sm:p-4 flex items-center gap-3 transition-all duration-300 group cursor-pointer ${
                     isSelected
                       ? 'border-accent-green/40 bg-accent-green/5'
                       : 'border-dark-border hover:border-dark-card-hover'
                   }`}
                   onClick={() => navigate(`/tasks/${m.mission_id}`)}
                 >
-                  {/* Checkbox */}
                   <div
                     onClick={(e) => toggleSelect(m.mission_id, e)}
                     className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-accent-green border-accent-green'
-                        : 'border-text-muted/40 hover:border-text-muted'
+                      isSelected ? 'bg-accent-green border-accent-green' : 'border-text-muted/40 hover:border-text-muted'
                     }`}
                   >
                     {isSelected && <Check className="w-3.5 h-3.5 text-dark-bg" />}
                   </div>
 
-                  {/* Icon */}
-                  <div className="w-9 h-9 bg-accent-purple/10 rounded-lg flex items-center justify-center group-hover:bg-accent-purple/20 transition-colors flex-shrink-0">
+                  <div className="w-9 h-9 bg-accent-purple/10 rounded-lg items-center justify-center group-hover:bg-accent-purple/20 transition-colors flex-shrink-0 hidden sm:flex">
                     <Search className="w-4 h-4 text-accent-purple" />
                   </div>
 
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-text-primary group-hover:text-accent-green transition-colors truncate">{m.keyword}</p>
                     <p className="text-xs text-text-muted">{formatDate(m.created_at)}</p>
                   </div>
 
-                  {/* Right side */}
-                  <div className="flex items-center gap-4 flex-shrink-0">
+                  <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
                     {m.total_results != null && <span className="text-xs text-text-secondary hidden sm:inline">{m.total_results} {t('results').toLowerCase()}</span>}
-                    {statusBadge(m.status, t)}
+                    <div className="hidden sm:block">{statusBadge(m.status, t)}</div>
                     <Chevron className="w-4 h-4 text-text-muted group-hover:text-text-primary transition-colors" />
                   </div>
                 </motion.div>

@@ -13,16 +13,20 @@ export default function Dashboard() {
   const results = mission?.results || [];
 
   return (
-    <div className="flex-1 flex flex-col min-h-screen">
-      <Header breadcrumbs={[t('dashboard'), t('liveScraping')]} />
+    <div className="flex-1 flex flex-col min-h-0">
+      <div className="hidden lg:block">
+        <Header breadcrumbs={[t('dashboard'), t('liveScraping')]} />
+      </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="p-6 space-y-5">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
           <SearchBar onScrape={scrape} loading={loading} />
           <StatsCards mission={mission} />
 
-          <div className="grid grid-cols-[1fr_auto] gap-4 items-start">
-            <LiveScrapingStatus mission={mission} />
+          <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-start">
+            <div className="flex-1">
+              <LiveScrapingStatus mission={mission} />
+            </div>
             <ExportButtons mission={mission} />
           </div>
 

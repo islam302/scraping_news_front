@@ -95,7 +95,7 @@ export default function AnalyzedReports({ results = [] }) {
 
       <AnimatePresence mode="wait">
         {viewMode === 'grid' ? (
-          <motion.div key="grid" className="grid grid-cols-2 gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+          <motion.div key="grid" className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
             {results.map((result, i) => <ReportCard key={i} result={result} index={i} />)}
           </motion.div>
         ) : (

@@ -25,8 +25,13 @@ export const translations = {
     liveScraping: 'Live Scraping',
 
     // SearchBar
-    keywordsQuery: 'Keywords / Query',
-    searchPlaceholder: 'Search news articles...',
+    keywordsLabel: 'Keywords',
+    keywordsPlaceholder: 'Add keyword and press Enter',
+    keywordsHint: 'Add up to 3 keywords, separated by comma or Enter',
+    maxKeywords: 'Maximum 3 keywords',
+    articleText: 'Article Text',
+    articleTextPlaceholder: 'Paste a brief excerpt from the article describing the event...',
+    articleTextHint: 'A short text snippet that clarifies the news event',
     dateRange: 'Date Range',
     allTime: 'All Time',
     last24h: 'Last 24 Hours',
@@ -138,8 +143,13 @@ export const translations = {
     liveScraping: 'الاستخراج المباشر',
 
     // SearchBar
-    keywordsQuery: 'الكلمات المفتاحية',
-    searchPlaceholder: 'ابحث في المقالات الإخبارية...',
+    keywordsLabel: 'الكلمات المفتاحية',
+    keywordsPlaceholder: 'أضف كلمة مفتاحية واضغط Enter',
+    keywordsHint: 'أضف حتى 3 كلمات مفتاحية، مفصولة بفاصلة أو Enter',
+    maxKeywords: 'الحد الأقصى 3 كلمات مفتاحية',
+    articleText: 'نص المقال',
+    articleTextPlaceholder: 'الصق مقتطفاً مختصراً من المقال يوضح الحدث...',
+    articleTextHint: 'نص قصير يوضح الحدث الإخباري',
     dateRange: 'النطاق الزمني',
     allTime: 'كل الأوقات',
     last24h: 'آخر 24 ساعة',

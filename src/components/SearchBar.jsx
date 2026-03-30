@@ -26,13 +26,13 @@ export default function SearchBar({ onScrape, loading }) {
   return (
     <motion.form
       onSubmit={handleSubmit}
-      className="bg-dark-card rounded-2xl border border-dark-border p-5 hover:border-dark-card-hover transition-colors duration-300"
+      className="bg-dark-card rounded-2xl border border-dark-border p-4 sm:p-5 hover:border-dark-card-hover transition-colors duration-300"
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <div className="grid grid-cols-[1fr_auto_auto] gap-4 items-end">
-        <div>
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-end">
+        <div className="flex-1">
           <label className="text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
             <Sparkles className="w-3 h-3 text-accent-green" />
             {t('keywordsQuery')}
@@ -49,38 +49,42 @@ export default function SearchBar({ onScrape, loading }) {
           </div>
         </div>
 
-        <div>
-          <label className="text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
-            <Calendar className="w-3 h-3 text-accent-blue" />
-            {t('dateRange')}
-          </label>
-          <select
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-            className="appearance-none bg-dark-input border border-dark-border rounded-lg px-4 pe-10 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent-green/50 focus:shadow-[0_0_0_3px_rgba(200,245,66,0.08)] transition-all cursor-pointer min-w-[170px]"
-          >
-            {dateOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </div>
+        <div className="flex gap-3">
+          <div className="flex-1 sm:flex-none">
+            <label className="text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
+              <Calendar className="w-3 h-3 text-accent-blue" />
+              {t('dateRange')}
+            </label>
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-full appearance-none bg-dark-input border border-dark-border rounded-lg px-4 pe-10 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent-green/50 focus:shadow-[0_0_0_3px_rgba(200,245,66,0.08)] transition-all cursor-pointer sm:min-w-[170px]"
+            >
+              {dateOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
 
-        <motion.button
-          type="submit"
-          disabled={loading || !keyword.trim()}
-          className="flex items-center gap-2 bg-accent-green text-dark-bg font-semibold px-6 py-2.5 rounded-lg text-sm hover:shadow-[0_0_20px_rgba(200,245,66,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
-        >
-          {loading ? (
-            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-              <Bot className="w-4 h-4" />
-            </motion.div>
-          ) : (
-            <Bot className="w-4 h-4" />
-          )}
-          {loading ? t('scraping') : t('scrapeAnalyze')}
-        </motion.button>
+          <div className="flex items-end">
+            <motion.button
+              type="submit"
+              disabled={loading || !keyword.trim()}
+              className="flex items-center gap-2 bg-accent-green text-dark-bg font-semibold px-4 sm:px-6 py-2.5 rounded-lg text-sm hover:shadow-[0_0_20px_rgba(200,245,66,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none whitespace-nowrap"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+            >
+              {loading ? (
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                  <Bot className="w-4 h-4" />
+                </motion.div>
+              ) : (
+                <Bot className="w-4 h-4" />
+              )}
+              <span className="hidden sm:inline">{loading ? t('scraping') : t('scrapeAnalyze')}</span>
+            </motion.button>
+          </div>
+        </div>
       </div>
     </motion.form>
   );

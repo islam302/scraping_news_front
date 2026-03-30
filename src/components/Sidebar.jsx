@@ -27,7 +27,7 @@ const itemVariants = {
   visible: { x: 0, opacity: 1 },
 };
 
-export default function Sidebar() {
+export default function Sidebar({ onNavigate }) {
   const { user, logout } = useAuth();
   const { t, lang, setLang } = useLang();
   const { toggleTheme, isDark } = useTheme();
@@ -81,6 +81,7 @@ export default function Sidebar() {
               <NavLink
                 to={to}
                 end={to === '/'}
+                onClick={onNavigate}
                 className={({ isActive }) =>
                   `group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                     isActive ? activeStyle : inactiveStyle
