@@ -18,7 +18,7 @@ function ReportCard({ result, index }) {
       <p className="text-xs text-text-secondary mb-3 line-clamp-2">{result.Paragraph}</p>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-dark-bg bg-accent-green/80 px-1.5 py-0.5 rounded font-medium">{result.Site}</span>
+          <span className="text-[11px] text-dark-bg bg-accent-green/80 px-1.5 py-0.5 rounded font-medium">{result.Site?.replace(/\s*\(Google\)/gi, '')}</span>
           <span className="text-xs text-text-muted">{result.Date}</span>
         </div>
         {result.Link && (
@@ -43,7 +43,7 @@ function ReportListItem({ result, index }) {
         <h3 className="text-sm font-semibold text-text-primary truncate group-hover:text-accent-green transition-colors duration-200">{result.Title}</h3>
         <p className="text-xs text-text-secondary truncate">{result.Paragraph}</p>
         <div className="flex items-center gap-2 mt-1">
-          <span className="text-[11px] text-dark-bg bg-accent-green/80 px-1.5 py-0.5 rounded font-medium">{result.Site}</span>
+          <span className="text-[11px] text-dark-bg bg-accent-green/80 px-1.5 py-0.5 rounded font-medium">{result.Site?.replace(/\s*\(Google\)/gi, '')}</span>
           <span className="text-xs text-text-muted">{result.Date}</span>
         </div>
       </div>

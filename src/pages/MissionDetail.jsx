@@ -212,7 +212,7 @@ export default function MissionDetail() {
                         )}
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
                           <span className="text-[11px] text-dark-bg bg-accent-green/80 px-1.5 py-0.5 rounded font-medium">
-                            {r.Site}
+                            {r.Site?.replace(/\s*\(Google\)/gi, '')}
                           </span>
                           {r.Date && <span className="text-xs text-text-muted">{r.Date}</span>}
                         </div>
