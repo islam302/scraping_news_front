@@ -1,5 +1,5 @@
-import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, Loader2, XCircle, Circle, Radio, Zap } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { CheckCircle2, XCircle, Circle, Radio, Zap } from 'lucide-react';
 import { useLang } from '../context/LangContext';
 
 function PulseRing({ delay = 0 }) {
@@ -22,49 +22,12 @@ export default function LiveScrapingStatus({ mission }) {
   const percent = total > 0 ? Math.round((done / total) * 100) : 0;
   const isActive = mission && ['pending', 'scraping', 'filtering'].includes(mission.status);
 
-  let sourceStatuses = [];
-
-  if (mission?.status === 'completed' && mission?.site_stats) {
-    sourceStatuses = Object.keys(mission.site_stats).map((name) => ({ name, status: 'done' }));
-  } else if (isActive && mission?.progress) {
-    const currentSite = progress.current_site;
-    if (currentSite) sourceStatuses.push({ name: currentSite, status: 'extracting' });
-    if (mission.site_stats) {
-      Object.keys(mission.site_stats).forEach((name) => {
-        if (name !== currentSite) sourceStatuses.push({ name, status: 'done' });
-      });
-    }
-  } else if (mission?.status === 'failed') {
-    if (mission.site_stats) {
-      sourceStatuses = Object.keys(mission.site_stats).map((name) => ({ name, status: 'done' }));
-    }
-    if (progress.current_site) sourceStatuses.push({ name: progress.current_site, status: 'error' });
-  }
-
   let statusText = t('liveScrapingStatus');
   if (mission?.status === 'filtering') statusText = t('aiFilteringInProgress');
   else if (mission?.status === 'completed') statusText = t('scrapingComplete');
   else if (mission?.status === 'failed') statusText = t('scrapingFailed');
 
   const displayPercent = mission?.status === 'completed' ? 100 : percent;
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'done': return <CheckCircle2 className="w-4 h-4 text-accent-green" />;
-      case 'extracting': return <Loader2 className="w-4 h-4 text-accent-blue animate-spin" />;
-      case 'error': return <XCircle className="w-4 h-4 text-accent-red" />;
-      default: return <Circle className="w-4 h-4 text-text-muted" />;
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'done': return 'text-accent-green';
-      case 'extracting': return 'text-accent-blue';
-      case 'error': return 'text-accent-red';
-      default: return 'text-text-muted';
-    }
-  };
 
   return (
     <motion.div
@@ -180,37 +143,6 @@ export default function LiveScrapingStatus({ mission }) {
           )}
         </div>
 
-        {/* Source statuses */}
-        <AnimatePresence mode="popLayout">
-          {sourceStatuses.length > 0 && (
-            <motion.div
-              className="flex items-center gap-3 sm:gap-5 flex-wrap"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              {sourceStatuses.map(({ name, status }, i) => (
-                <motion.div
-                  key={name}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs ${
-                    status === 'done' ? 'bg-accent-green/10' :
-                    status === 'extracting' ? 'bg-accent-blue/10' :
-                    status === 'error' ? 'bg-accent-red/10' :
-                    'bg-dark-card-hover'
-                  }`}
-                  initial={{ opacity: 0, scale: 0.8, x: -10 }}
-                  animate={{ opacity: 1, scale: 1, x: 0 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ delay: i * 0.04, duration: 0.2 }}
-                  layout
-                >
-                  {getStatusIcon(status)}
-                  <span className={`${getStatusColor(status)} truncate max-w-[150px]`}>{name}</span>
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Error message — user-friendly only */}
         {mission?.status === 'failed' && (
