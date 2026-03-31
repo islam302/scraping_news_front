@@ -50,8 +50,8 @@ export const getSiteLists = async () => {
 
 // === Scraping ===
 
-export const startScraping = async (keyword, dateFilter = '', siteList = []) => {
-  const body = { keyword, date_filter: dateFilter };
+export const startScraping = async (keyword, dateFilter = 'none', siteList = []) => {
+  const body = { keyword, date_filter: dateFilter || 'none' };
   if (siteList.length > 0) body.site_list = siteList;
   const { data } = await api.post('/api/scrape/', body);
   return data;

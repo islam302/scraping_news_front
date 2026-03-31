@@ -6,7 +6,7 @@ import { useLang } from '../context/LangContext';
 export default function SearchBar({ onScrape, loading, siteLists = [] }) {
   const { t } = useLang();
   const [keyword, setKeyword] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('none');
   const [selectedLists, setSelectedLists] = useState([]);
   const [listOpen, setListOpen] = useState(false);
 
@@ -14,7 +14,7 @@ export default function SearchBar({ onScrape, loading, siteLists = [] }) {
   const uniqueLists = [...new Map(siteLists.map((l) => [l.name, l])).values()];
 
   const dateOptions = [
-    { value: '', label: t('noFilter') },
+    { value: 'none', label: t('noFilter') },
     { value: '24h', label: t('last24h') },
     { value: '48h', label: t('last48h') },
     { value: 'week', label: t('last7d') },
@@ -66,8 +66,7 @@ export default function SearchBar({ onScrape, loading, siteLists = [] }) {
         {/* Site Lists + Date + Submit row */}
         <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
           {/* Site Lists dropdown */}
-          {uniqueLists.length > 0 && (
-            <div className="relative flex-1 sm:max-w-[240px]">
+          <div className="relative flex-1 sm:max-w-[240px]">
               <label className="text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
                 <Globe className="w-3 h-3 text-accent-cyan" />
                 {t('siteListLabel')}
@@ -126,7 +125,6 @@ export default function SearchBar({ onScrape, loading, siteLists = [] }) {
                 <div className="fixed inset-0 z-10" onClick={() => setListOpen(false)} />
               )}
             </div>
-          )}
 
           {/* Date */}
           <div className="flex-1 sm:max-w-[180px]">
