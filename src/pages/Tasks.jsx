@@ -14,7 +14,7 @@ import {
   ChevronLeft,
   Check,
 } from 'lucide-react';
-import { getMissions, deleteAllMissions } from '../services/api';
+import { getMissions, deleteMission } from '../services/api';
 import { useLang } from '../context/LangContext';
 
 function statusBadge(status, t) {
@@ -78,7 +78,7 @@ export default function Tasks() {
     if (!window.confirm(t('deleteSelectedConfirm'))) return;
     setDeleting(true);
     try {
-      await deleteAllMissions();
+      await Promise.all([...selected].map((id) => deleteMission(id)));
       setMissions((prev) => prev.filter((m) => !selected.has(m.mission_id)));
       setSelected(new Set());
     } catch { /* ignore */ }
@@ -93,7 +93,6 @@ export default function Tasks() {
         <Header breadcrumbs={[t('dashboard'), t('tasks')]} />
       </div>
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-        {/* Header */}
         <motion.div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 sm:mb-6" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
           <div>
             <h2 className="text-lg sm:text-xl font-bold text-text-primary">{t('missionsHistory')}</h2>
@@ -145,7 +144,6 @@ export default function Tasks() {
           </div>
         </motion.div>
 
-        {/* Content */}
         {loading ? (
           <div className="flex items-center justify-center py-12 gap-3 text-text-secondary">
             <Loader2 className="w-5 h-5 animate-spin" /> {t('loadingMissions')}

@@ -63,8 +63,8 @@ export const getMissionStatus = async (missionId) => {
   return data;
 };
 
-export const deleteAllMissions = async () => {
-  const { data } = await api.delete('/api/missions/');
+export const deleteMission = async (missionId) => {
+  const { data } = await api.delete(`/api/missions/${missionId}/`);
   return data;
 };
 
