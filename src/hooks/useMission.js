@@ -40,13 +40,13 @@ export function useMission() {
     }, POLL_INTERVAL);
   }, [stopPolling]);
 
-  const scrape = useCallback(async (keyword, dateFilter = 'none') => {
+  const scrape = useCallback(async (keyword, dateFilter = '', siteList = []) => {
     setLoading(true);
     setError(null);
     setMission(null);
 
     try {
-      const data = await startScraping(keyword, dateFilter);
+      const data = await startScraping(keyword, dateFilter, siteList);
       setMission({ mission_id: data.mission_id, status: data.status, keyword });
       pollMission(data.mission_id);
     } catch (err) {

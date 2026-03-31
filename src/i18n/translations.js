@@ -25,10 +25,12 @@ export const translations = {
     liveScraping: 'Live Scraping',
 
     // SearchBar
-    keywordsQuery: 'Keywords / Query',
-    searchPlaceholder: 'Search news articles...',
+    keywordsLabel: 'Keyword',
+    keywordsPlaceholder: 'Enter keyword...',
+    siteListLabel: 'Site Lists',
+    siteListAll: 'All Sites',
     dateRange: 'Date Range',
-    allTime: 'All Time',
+    noFilter: 'No Filter',
     last24h: 'Last 24 Hours',
     last48h: 'Last 48 Hours',
     last7d: 'Last 7 Days',
@@ -139,8 +141,11 @@ export const translations = {
     liveScraping: 'الاستخراج المباشر',
 
     // SearchBar
-    keywordsQuery: 'الكلمات المفتاحية',
-    searchPlaceholder: 'ابحث في المقالات الإخبارية...',
+    keywordsLabel: 'الكلمة المفتاحية',
+    keywordsPlaceholder: 'أدخل الكلمة المفتاحية...',
+    siteListLabel: 'قوائم المواقع',
+    siteListAll: 'جميع المواقع',
+    noFilter: 'بدون فلتر',
     dateRange: 'النطاق الزمني',
     allTime: 'كل الأوقات',
     last24h: 'آخر 24 ساعة',

@@ -41,13 +41,19 @@ export const deleteSite = async (siteId) => {
   return data;
 };
 
+// === Site Lists ===
+
+export const getSiteLists = async () => {
+  const { data } = await api.get('/api/site-lists/');
+  return data;
+};
+
 // === Scraping ===
 
-export const startScraping = async (keyword, dateFilter = 'none') => {
-  const { data } = await api.post('/api/scrape/', {
-    keyword,
-    date_filter: dateFilter,
-  });
+export const startScraping = async (keyword, dateFilter = '', siteList = []) => {
+  const body = { keyword, date_filter: dateFilter };
+  if (siteList.length > 0) body.site_list = siteList;
+  const { data } = await api.post('/api/scrape/', body);
   return data;
 };
 
