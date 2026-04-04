@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getAccessToken } from './auth';
+import { getAccessToken, logout } from './auth';
 
 const BASE_URL = 'https://una-ai-tools-apis.una-oic.org/scraping-api';
 
@@ -18,6 +18,30 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Returns true if the JWT access token is expired (3-day lifetime)
+const isTokenExpired = () => {
+  const token = getAccessToken();
+  if (!token) return false;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp * 1000 < Date.now();
+  } catch {
+    return false;
+  }
+};
+
+// Auto-logout when token is expired
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && isTokenExpired()) {
+      logout();
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 // === Sites ===
 

@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api/auth': {
-        target: 'https://authentication-system-4svs.onrender.com',
+        target: 'https://una-ai-tools-apis.una-oic.org/auth-api',
         changeOrigin: true,
       },
     },

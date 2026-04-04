@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-// In dev: Vite proxy. In prod: Vercel serverless function at /api/auth
 const AUTH_URL = '';
 
 const authApi = axios.create({
