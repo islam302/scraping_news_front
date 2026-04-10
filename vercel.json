@@ -1,8 +1,8 @@
 {
   "routes": [
     {
-      "src": "/api/auth/(.*)",
-      "dest": "https://authentication-system-4svs.onrender.com/api/auth/$1"
+      "src": "/auth-api/(.*)",
+      "dest": "https://una-ai-tools-apis.una-oic.org/auth-api/$1"
     },
     {
       "handle": "filesystem"

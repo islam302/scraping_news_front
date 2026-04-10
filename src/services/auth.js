@@ -1,10 +1,7 @@
 import axios from 'axios';
 
-// In dev, Vite proxy handles /auth-api to avoid CORS.
-// In production, set this to the full auth URL.
-const AUTH_URL = import.meta.env.PROD
-  ? 'https://una-ai-tools-apis.una-oic.org/auth-api'
-  : '/auth-api';
+// Proxied via Vite (dev) and Vercel rewrites (prod) to avoid CORS
+const AUTH_URL = '/auth-api';
 
 const authApi = axios.create({
   baseURL: AUTH_URL,
