@@ -43,3 +43,27 @@ export const getUser = () => {
 };
 
 export const isAuthenticated = () => !!localStorage.getItem('access_token');
+
+// Check if access token is expired (3-day lifetime)
+export const isAccessExpired = () => {
+  const token = getAccessToken();
+  if (!token) return true;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp * 1000 < Date.now();
+  } catch {
+    return true;
+  }
+};
+
+// Auto-refresh access token if expired but refresh token still valid (7-day lifetime)
+export const ensureValidToken = async () => {
+  if (!isAccessExpired()) return true;
+  try {
+    await refreshToken();
+    return true;
+  } catch {
+    logout();
+    return false;
+  }
+};
