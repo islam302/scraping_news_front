@@ -6,8 +6,8 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      '/api/auth': {
-        target: 'https://una-ai-tools-apis.una-oic.org/auth-api',
+      '/auth-api': {
+        target: 'https://una-ai-tools-apis.una-oic.org',
         changeOrigin: true,
       },
     },
