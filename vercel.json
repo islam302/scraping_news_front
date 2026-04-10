@@ -5,6 +5,13 @@
       "dest": "https://una-ai-tools-apis.una-oic.org/auth-api/$1"
     },
     {
+      "src": "/scraping-api/(.*)",
+      "dest": "https://una-ai-tools-apis.una-oic.org/scraping-api/$1",
+      "headers": {
+        "X-API-Key": "nra_ce35c0f17f8ab7e1446eb14af61baf247e17aca000693b4ee4a0984e"
+      }
+    },
+    {
       "handle": "filesystem"
     },
     {

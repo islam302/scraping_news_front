@@ -1,22 +1,14 @@
 import axios from 'axios';
 import { getAccessToken, logout } from './auth';
 
-const BASE_URL = 'https://una-ai-tools-apis.una-oic.org/scraping-api';
+// Proxied via Vite (dev) and Vercel rewrites (prod) — API key added server-side
+const BASE_URL = '/scraping-api';
 
 const api = axios.create({
   baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-});
-
-// Attach JWT token to every request
-api.interceptors.request.use((config) => {
-  const token = getAccessToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
 });
 
 // Returns true if the JWT access token is expired (3-day lifetime)
