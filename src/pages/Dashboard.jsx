@@ -8,18 +8,20 @@ import AnalyzedReports from '../components/AnalyzedReports';
 import { useMission } from '../hooks/useMission';
 import { getSiteLists } from '../services/api';
 import { useLang } from '../context/LangContext';
+import { formatError } from '../utils/errors';
 
 export default function Dashboard() {
   const { mission, loading, error, scrape } = useMission();
   const { t } = useLang();
   const results = mission?.results || [];
   const [siteLists, setSiteLists] = useState([]);
+  const [listsError, setListsError] = useState(null);
 
   useEffect(() => {
     getSiteLists()
       .then((data) => setSiteLists(data.site_lists || []))
-      .catch(() => {});
-  }, []);
+      .catch((err) => setListsError(formatError(err, t, 'errLoadSites')));
+  }, [t]);
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -39,9 +41,9 @@ export default function Dashboard() {
             <ExportButtons mission={mission} />
           </div>
 
-          {error && (
+          {(error || listsError) && (
             <div className="bg-accent-red/10 border border-accent-red/30 rounded-xl p-4 text-sm text-accent-red">
-              {t('scrapingFailedMsg')}
+              {error || listsError}
             </div>
           )}
 

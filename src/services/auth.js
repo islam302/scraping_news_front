@@ -8,6 +8,19 @@ const authApi = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// Attach access token to every authenticated request
+authApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token');
+  if (token && !config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// ============================================================================
+// Token (Login / Refresh / Verify)
+// ============================================================================
+
 export const login = async (username, password) => {
   const { data } = await authApi.post('/api/auth/token/', { username, password });
   localStorage.setItem('access_token', data.access);
@@ -28,6 +41,107 @@ export const refreshToken = async () => {
   localStorage.setItem('access_token', data.access);
   return data.access;
 };
+
+export const verifyToken = async (token) => {
+  const { data } = await authApi.post('/api/auth/token/verify/', { token });
+  return data;
+};
+
+// ============================================================================
+// Register
+// ============================================================================
+
+export const register = async ({ username, email, password, organization }) => {
+  const body = { username, email, password };
+  if (organization) body.organization = organization;
+  const { data } = await authApi.post('/api/auth/register/', body);
+  return data;
+};
+
+// ============================================================================
+// Profile
+// ============================================================================
+
+export const getProfile = async () => {
+  const { data } = await authApi.get('/api/auth/profile/');
+  return data;
+};
+
+export const updateProfile = async (payload) => {
+  const { data } = await authApi.patch('/api/auth/profile/', payload);
+  const current = getUser() || {};
+  localStorage.setItem('user', JSON.stringify({ ...current, ...data }));
+  return data;
+};
+
+// ============================================================================
+// API Keys
+// ============================================================================
+
+export const getApiKeys = async () => {
+  const { data } = await authApi.get('/api/auth/api-keys/');
+  return data;
+};
+
+export const createApiKey = async () => {
+  const { data } = await authApi.post('/api/auth/api-keys/');
+  return data;
+};
+
+export const deleteApiKey = async (keyId) => {
+  const { data } = await authApi.delete(`/api/auth/api-keys/${keyId}/`);
+  return data;
+};
+
+// ============================================================================
+// Password Reset
+// ============================================================================
+
+export const requestPasswordReset = async (email) => {
+  const { data } = await authApi.post('/api/auth/password-reset/', { email });
+  return data;
+};
+
+export const confirmPasswordReset = async (token, uidb64, password) => {
+  const { data } = await authApi.post(
+    `/api/auth/password-reset-confirm/${token}/${uidb64}/`,
+    { password },
+  );
+  return data;
+};
+
+// ============================================================================
+// User Management (Admin Only)
+// ============================================================================
+
+export const listUsers = async () => {
+  const { data } = await authApi.get('/api/auth/users/');
+  return data;
+};
+
+export const getUserDetails = async (userId) => {
+  const { data } = await authApi.get(`/api/auth/users/${userId}/`);
+  return data;
+};
+
+export const createUser = async (payload) => {
+  const { data } = await authApi.post('/api/auth/users/', payload);
+  return data;
+};
+
+export const updateUser = async (userId, payload) => {
+  const { data } = await authApi.patch(`/api/auth/users/${userId}/`, payload);
+  return data;
+};
+
+export const deleteUser = async (userId) => {
+  const { data } = await authApi.delete(`/api/auth/users/${userId}/`);
+  return data;
+};
+
+// ============================================================================
+// Session helpers
+// ============================================================================
 
 export const logout = () => {
   localStorage.removeItem('access_token');

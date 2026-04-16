@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { getMissions, deleteMission } from '../services/api';
 import { useLang } from '../context/LangContext';
+import { formatError } from '../utils/errors';
 
 function statusBadge(status, t) {
   switch (status) {
@@ -46,6 +47,8 @@ export default function Tasks() {
   const navigate = useNavigate();
   const [missions, setMissions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
   const [selected, setSelected] = useState(new Set());
   const [deleting, setDeleting] = useState(false);
 
@@ -55,9 +58,9 @@ export default function Tasks() {
   useEffect(() => {
     getMissions()
       .then((data) => setMissions(data.missions || []))
-      .catch(() => {})
+      .catch((err) => setPageError(formatError(err, t, 'errLoadMissions')))
       .finally(() => setLoading(false));
-  }, []);
+  }, [t]);
 
   const toggleSelect = (id, e) => {
     e.stopPropagation();
@@ -77,12 +80,16 @@ export default function Tasks() {
   const handleDeleteSelected = async () => {
     if (!window.confirm(t('deleteSelectedConfirm'))) return;
     setDeleting(true);
+    setDeleteError(null);
     try {
       await Promise.all([...selected].map((id) => deleteMission(id)));
       setMissions((prev) => prev.filter((m) => !selected.has(m.mission_id)));
       setSelected(new Set());
-    } catch { /* ignore */ }
-    finally { setDeleting(false); }
+    } catch (err) {
+      setDeleteError(formatError(err, t, 'errDeleteMission'));
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const allSelected = missions.length > 0 && selected.size === missions.length;
@@ -93,6 +100,16 @@ export default function Tasks() {
         <Header breadcrumbs={[t('dashboard'), t('tasks')]} />
       </div>
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        {pageError && (
+          <div className="mb-4 bg-accent-red/10 border border-accent-red/30 rounded-xl p-3 text-sm text-accent-red">
+            {pageError}
+          </div>
+        )}
+        {deleteError && (
+          <div className="mb-4 bg-accent-red/10 border border-accent-red/30 rounded-xl p-3 text-sm text-accent-red">
+            {deleteError}
+          </div>
+        )}
         <motion.div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 sm:mb-6" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
           <div>
             <h2 className="text-lg sm:text-xl font-bold text-text-primary">{t('missionsHistory')}</h2>

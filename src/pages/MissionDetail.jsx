@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { getMissionStatus, getDownloadUrl } from '../services/api';
 import { useLang } from '../context/LangContext';
+import { formatError } from '../utils/errors';
 
 function formatDate(dateStr) {
   if (!dateStr) return '--';
@@ -69,7 +70,7 @@ export default function MissionDetail() {
           }, 3000);
         }
       } catch (err) {
-        setError(err.response?.data?.error || (typeof err.response?.data?.detail === 'string' ? err.response.data.detail : err.response?.data?.detail?.message) || t('failedToLoad'));
+        setError(formatError(err, t, 'errGeneric'));
         setLoading(false);
       }
     };
