@@ -199,11 +199,21 @@ export default function MissionDetail() {
                       href={r.Link || '#'}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`bg-dark-card border border-dark-border rounded-xl p-3 sm:p-4 flex items-start justify-between gap-3 sm:gap-4 hover:border-accent-green/20 transition-all duration-200 group block ${r.Link ? 'cursor-pointer' : 'cursor-default'}`}
+                      className={`bg-dark-card border border-dark-border rounded-xl p-3 sm:p-4 flex items-start gap-3 sm:gap-4 hover:border-accent-green/20 transition-all duration-200 group block ${r.Link ? 'cursor-pointer' : 'cursor-default'}`}
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.02 }}
                     >
+                      {r.Image && (
+                        <div className="w-20 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-dark-border">
+                          <img
+                            src={r.Image}
+                            alt={r.Title}
+                            className="w-full h-full object-cover"
+                            onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement.style.display = 'none'; }}
+                          />
+                        </div>
+                      )}
                       <div className="min-w-0 flex-1">
                         <h4 className="text-sm font-medium text-text-primary group-hover:text-accent-green transition-colors break-words">
                           {r.Title}

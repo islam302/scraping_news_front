@@ -6,26 +6,38 @@ import { useLang } from '../context/LangContext';
 function ReportCard({ result, index }) {
   return (
     <motion.div
-      className="bg-dark-card border border-dark-border rounded-2xl p-4 hover:border-accent-green/20 hover:shadow-[0_0_20px_rgba(200,245,66,0.06)] transition-all duration-300 group"
+      className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden hover:border-accent-green/20 hover:shadow-[0_0_20px_rgba(200,245,66,0.06)] transition-all duration-300 group"
       initial={{ opacity: 0, y: 15, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ delay: index * 0.04, duration: 0.3 }}
       whileHover={{ y: -3 }}
     >
-      <h3 className="text-sm font-semibold text-text-primary mb-1 line-clamp-2 group-hover:text-accent-green transition-colors duration-200">
-        {result.Title}
-      </h3>
-      <p className="text-xs text-text-secondary mb-3 line-clamp-2">{result.Paragraph}</p>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] text-dark-bg bg-accent-green/80 px-1.5 py-0.5 rounded font-medium">{result.Site?.replace(/\s*\(Google\)/gi, '')}</span>
-          <span className="text-xs text-text-muted">{result.Date}</span>
+      {result.Image && (
+        <div className="w-full h-72 overflow-hidden bg-dark-border">
+          <img
+            src={result.Image}
+            alt={result.Title}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement.style.display = 'none'; }}
+          />
         </div>
-        {result.Link && (
-          <a href={result.Link} target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-accent-blue transition-colors duration-200">
-            <ExternalLink className="w-4 h-4" />
-          </a>
-        )}
+      )}
+      <div className="p-4">
+        <h3 className="text-sm font-semibold text-text-primary mb-1 line-clamp-2 group-hover:text-accent-green transition-colors duration-200">
+          {result.Title}
+        </h3>
+        <p className="text-xs text-text-secondary mb-3 line-clamp-2">{result.Paragraph}</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-dark-bg bg-accent-green/80 px-1.5 py-0.5 rounded font-medium">{result.Site?.replace(/\s*\(Google\)/gi, '')}</span>
+            <span className="text-xs text-text-muted">{result.Date}</span>
+          </div>
+          {result.Link && (
+            <a href={result.Link} target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-accent-blue transition-colors duration-200">
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          )}
+        </div>
       </div>
     </motion.div>
   );
@@ -34,11 +46,21 @@ function ReportCard({ result, index }) {
 function ReportListItem({ result, index }) {
   return (
     <motion.div
-      className="bg-dark-card border border-dark-border rounded-xl p-4 flex items-center justify-between gap-4 hover:border-accent-green/20 hover:shadow-[0_0_15px_rgba(200,245,66,0.05)] transition-all duration-300 group"
+      className="bg-dark-card border border-dark-border rounded-xl p-4 flex items-center gap-4 hover:border-accent-green/20 hover:shadow-[0_0_15px_rgba(200,245,66,0.05)] transition-all duration-300 group"
       initial={{ opacity: 0, x: -15 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.03, duration: 0.3 }}
     >
+      {result.Image && (
+        <div className="w-20 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-dark-border">
+          <img
+            src={result.Image}
+            alt={result.Title}
+            className="w-full h-full object-cover"
+            onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement.style.display = 'none'; }}
+          />
+        </div>
+      )}
       <div className="min-w-0 flex-1">
         <h3 className="text-sm font-semibold text-text-primary truncate group-hover:text-accent-green transition-colors duration-200">{result.Title}</h3>
         <p className="text-xs text-text-secondary truncate">{result.Paragraph}</p>
