@@ -30,6 +30,7 @@ export const translations = {
     siteListLabel: 'Site Lists',
     siteListAll: 'All Sites',
     dateRange: 'Date Range',
+    maxDaysLabel: 'Max Days',
     noFilter: 'No Filter',
     last24h: 'Last 24 Hours',
     last48h: 'Last 48 Hours',
@@ -151,6 +152,12 @@ export const translations = {
     errLoadSites:    'Failed to load sites. Please refresh the page.',
     errSaveList:     'Failed to save the list. Please try again.',
 
+    // Maintenance / service down
+    maintTitle:    "We'll be right back",
+    maintMessage:  "We're performing some updates to improve the scraping service. Everything will be back online shortly — thanks for your patience.",
+    maintRetry:    'Try again',
+    maintChecking: 'Checking…',
+
     // Theme
     darkMode: 'Dark Mode',
     lightMode: 'Light Mode',
@@ -188,6 +195,7 @@ export const translations = {
     siteListAll: 'جميع المواقع',
     noFilter: 'بدون فلتر',
     dateRange: 'النطاق الزمني',
+    maxDaysLabel: 'أقصى عدد أيام',
     allTime: 'كل الأوقات',
     last24h: 'آخر 24 ساعة',
     last48h: 'آخر 48 ساعة',
@@ -308,6 +316,12 @@ export const translations = {
     errDeleteMission:'فشل حذف المهمة. يرجى المحاولة مجدداً.',
     errLoadSites:    'فشل تحميل المواقع. يرجى تحديث الصفحة.',
     errSaveList:     'فشل حفظ القائمة. يرجى المحاولة مجدداً.',
+
+    // Maintenance / service down
+    maintTitle:    'سنعود قريباً',
+    maintMessage:  'نقوم حالياً ببعض التحديثات لتحسين خدمة الاستخراج. ستعود الخدمة للعمل قريباً — شكراً لصبركم.',
+    maintRetry:    'إعادة المحاولة',
+    maintChecking: 'جارٍ التحقق…',
 
     // Theme
     darkMode: 'الوضع الداكن',

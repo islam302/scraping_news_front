@@ -1,36 +1,17 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Calendar, Bot, Sparkles, Globe, Check, ChevronDown } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Search, Calendar, Bot, Sparkles } from 'lucide-react';
 import { useLang } from '../context/LangContext';
 
-export default function SearchBar({ onScrape, loading, siteLists = [] }) {
+export default function SearchBar({ onScrape, loading }) {
   const { t } = useLang();
   const [keyword, setKeyword] = useState('');
-  const [dateFilter, setDateFilter] = useState('none');
-  const [selectedLists, setSelectedLists] = useState([]);
-  const [listOpen, setListOpen] = useState(false);
-
-  // Deduplicate site lists by name
-  const uniqueLists = [...new Map(siteLists.map((l) => [l.name, l])).values()];
-
-  const dateOptions = [
-    { value: 'none', label: t('noFilter') },
-    { value: '24h', label: t('last24h') },
-    { value: '48h', label: t('last48h') },
-    { value: 'week', label: t('last7d') },
-    { value: 'month', label: t('last30d') },
-  ];
-
-  const toggleList = (name) => {
-    setSelectedLists((prev) =>
-      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
-    );
-  };
+  const [maxDays, setMaxDays] = useState(1);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (keyword.trim() && !loading) {
-      onScrape(keyword.trim(), dateFilter, selectedLists);
+      onScrape(keyword.trim(), { maxDays: Number(maxDays) || 1 });
     }
   };
 
@@ -63,84 +44,21 @@ export default function SearchBar({ onScrape, loading, siteLists = [] }) {
           </div>
         </div>
 
-        {/* Site Lists + Date + Submit row */}
+        {/* Max Days + Submit row */}
         <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
-          {/* Site Lists dropdown */}
-          <div className="relative flex-1 sm:max-w-[240px]">
-              <label className="text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
-                <Globe className="w-3 h-3 text-accent-cyan" />
-                {t('siteListLabel')}
-              </label>
-              <button
-                type="button"
-                onClick={() => setListOpen(!listOpen)}
-                className="w-full flex items-center justify-between bg-dark-input border border-dark-border rounded-lg px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent-green/50 focus:shadow-[0_0_0_3px_rgba(200,245,66,0.08)] transition-all"
-              >
-                <span className={selectedLists.length === 0 ? 'text-text-muted' : ''}>
-                  {selectedLists.length === 0
-                    ? t('siteListAll')
-                    : selectedLists.join(', ')}
-                </span>
-                <ChevronDown className={`w-4 h-4 text-text-muted transition-transform ${listOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              <AnimatePresence>
-                {listOpen && (
-                  <motion.div
-                    className="absolute z-20 top-full mt-1 w-full bg-dark-card border border-dark-border rounded-lg shadow-xl shadow-black/30 overflow-hidden"
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
-                    transition={{ duration: 0.15 }}
-                  >
-                    {uniqueLists.map((list) => {
-                      const isSelected = selectedLists.includes(list.name);
-                      return (
-                        <button
-                          key={list.name}
-                          type="button"
-                          onClick={() => toggleList(list.name)}
-                          className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-start ${
-                            isSelected
-                              ? 'bg-accent-green/10 text-accent-green'
-                              : 'text-text-primary hover:bg-dark-card-hover'
-                          }`}
-                        >
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all ${
-                            isSelected ? 'bg-accent-green border-accent-green' : 'border-text-muted/40'
-                          }`}>
-                            {isSelected && <Check className="w-3 h-3 text-dark-bg" />}
-                          </div>
-                          <span className="truncate">{list.name}</span>
-                          <span className="text-text-muted text-xs ms-auto">{list.site_count}</span>
-                        </button>
-                      );
-                    })}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Close dropdown when clicking outside */}
-              {listOpen && (
-                <div className="fixed inset-0 z-10" onClick={() => setListOpen(false)} />
-              )}
-            </div>
-
-          {/* Date */}
+          {/* Max Days */}
           <div className="flex-1 sm:max-w-[180px]">
             <label className="text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
               <Calendar className="w-3 h-3 text-accent-purple" />
-              {t('dateRange')}
+              {t('maxDaysLabel')}
             </label>
-            <select
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="w-full appearance-none bg-dark-input border border-dark-border rounded-lg px-4 pe-10 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent-green/50 focus:shadow-[0_0_0_3px_rgba(200,245,66,0.08)] transition-all cursor-pointer"
-            >
-              {dateOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+            <input
+              type="number"
+              min="1"
+              value={maxDays}
+              onChange={(e) => setMaxDays(e.target.value)}
+              className="w-full bg-dark-input border border-dark-border rounded-lg px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent-green/50 focus:shadow-[0_0_0_3px_rgba(200,245,66,0.08)] transition-all"
+            />
           </div>
 
           {/* Submit */}

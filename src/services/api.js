@@ -11,6 +11,51 @@ const api = axios.create({
 });
 
 // ============================================================================
+// Global API health / maintenance detection
+// ----------------------------------------------------------------------------
+// When the backend or proxy is down (network error / 5xx), we surface a
+// full-screen "we're doing updates" page instead of letting each call fail
+// silently. A successful response clears the flag again (auto-recovery).
+// 4xx (auth, validation, not-found) are the user's request, NOT an outage, so
+// they never trigger maintenance mode.
+// ============================================================================
+
+const maintenanceListeners = new Set();
+
+/** Subscribe to API up/down changes. Returns an unsubscribe fn. */
+export const onApiMaintenance = (listener) => {
+  maintenanceListeners.add(listener);
+  return () => maintenanceListeners.delete(listener);
+};
+
+const notifyMaintenance = (down) => {
+  maintenanceListeners.forEach((fn) => fn(down));
+};
+
+const isOutage = (error) => {
+  const status = error?.response?.status;
+  // No response → network/CORS/timeout. 5xx → backend or proxy failure.
+  return !status || status >= 500;
+};
+
+api.interceptors.response.use(
+  (response) => {
+    notifyMaintenance(false);
+    return response;
+  },
+  (error) => {
+    if (isOutage(error)) notifyMaintenance(true);
+    return Promise.reject(error);
+  },
+);
+
+/** Lightweight probe used by the maintenance page to check if we're back. */
+export const checkApiHealth = async () => {
+  await api.get('/api/site-lists/');
+  return true;
+};
+
+// ============================================================================
 // Site Lists CRUD
 // ============================================================================
 
@@ -87,12 +132,18 @@ export const deleteSite = async (siteId) => {
 // Scraping (Full Pipeline)
 // ============================================================================
 
-export const startScraping = async (keyword, dateFilter = 'none', siteList = []) => {
-  const body = { keyword, date_filter: dateFilter || 'none' };
-  if (Array.isArray(siteList) ? siteList.length > 0 : siteList) {
-    body.site_list = siteList;
-  }
-  const { data } = await api.post('/api/scrape/', body);
+export const startScraping = async (keyword, {
+  categories = ['general'],
+  maxDays = 1,
+  maxPages = 200,
+} = {}) => {
+  const body = {
+    keyword,
+    categories,
+    max_days: maxDays,
+    max_pages: maxPages,
+  };
+  const { data } = await api.post('/api/category-scrape/', body);
   return data;
 };
 
