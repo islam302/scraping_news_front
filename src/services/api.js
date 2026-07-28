@@ -133,7 +133,7 @@ export const deleteSite = async (siteId) => {
 // ============================================================================
 
 export const startScraping = async (keyword, {
-  categories = ['general'],
+  categories = ['general', 'political'],
   maxDays = 1,
   maxPages = 200,
 } = {}) => {
