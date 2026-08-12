@@ -377,3 +377,75 @@ export const translations = {
     lightMode: 'الوضع الفاتح',
   },
 };
+
+// Display labels for the unified category keys (see frontend.md §5).
+// Falls back to the raw key for any key not listed here.
+export const categoryLabels = {
+  en: {
+    general: 'General',
+    political: 'Political',
+    local: 'Local',
+    regional: 'Regional',
+    economy: 'Economy',
+    sport: 'Sport',
+    culture: 'Culture',
+    technology: 'Technology',
+    education: 'Education',
+    health: 'Health',
+    social: 'Social',
+    environment: 'Environment',
+    tourism: 'Tourism',
+    world: 'World',
+    security: 'Security',
+    parliament: 'Parliament',
+    reports: 'Reports',
+    opinion: 'Opinion',
+    misc: 'Miscellaneous',
+  },
+  ar: {
+    general: 'عام',
+    political: 'سياسة',
+    local: 'محليات',
+    regional: 'إقليمي',
+    economy: 'اقتصاد',
+    sport: 'رياضة',
+    culture: 'ثقافة',
+    technology: 'تقنية',
+    education: 'تعليم',
+    health: 'صحة',
+    social: 'مجتمع',
+    environment: 'بيئة',
+    tourism: 'سياحة',
+    world: 'عالمي',
+    security: 'أمن',
+    parliament: 'برلمان',
+    reports: 'تقارير',
+    opinion: 'رأي',
+    misc: 'منوعات',
+  },
+};
+
+/** Translate a category key to a display label for the given locale. */
+export const categoryLabel = (key, lang = 'en') =>
+  categoryLabels[lang]?.[key] || categoryLabels.en[key] || key;
+
+// Display labels for the known site-list keys (see frontend.md §6).
+// Falls back to a prettified key for anything not listed.
+export const siteListLabels = {
+  en: {
+    arabic_sites: 'Arabic Sites',
+    gulf_agencies: 'Gulf Agencies',
+    other_sites: 'Other Sites',
+  },
+  ar: {
+    arabic_sites: 'المواقع العربية',
+    gulf_agencies: 'وكالات الخليج',
+    other_sites: 'مواقع أخرى',
+  },
+};
+
+/** Translate a site-list key to a display label for the given locale. */
+export const siteListLabel = (key, lang = 'en') =>
+  siteListLabels[lang]?.[key] ||
+  siteListLabels.en[key] ||
+  key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());

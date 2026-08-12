@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Calendar, Bot, Sparkles, Globe, Layers, Check, ChevronDown, FileStack } from 'lucide-react';
+import { Search, Calendar, Bot, Sparkles, Globe, Layers, Check, ChevronDown } from 'lucide-react';
 import { useLang } from '../context/LangContext';
+import { categoryLabel, siteListLabel } from '../i18n/translations';
 
 // Compact multi-select dropdown used for categories + site lists.
 function MultiSelect({ label, icon: Icon, iconColor, placeholder, options, selected, onToggle, formatOption }) {
@@ -74,13 +75,11 @@ export default function SearchBar({
   siteLists = [],
   allToken = 'all',
 }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [keyword, setKeyword] = useState('');
   const [categories, setCategories] = useState(['general']);
   const [selectedLists, setSelectedLists] = useState([]);
-  const [maxDays, setMaxDays] = useState(7);
-  const [maxPages, setMaxPages] = useState(300);
-  const [aiFilter, setAiFilter] = useState(true);
+  const [maxDays, setMaxDays] = useState(1);
 
   // Category options: the "all" token first, then every discovered key.
   const categoryOptions = [allToken, ...availableCategories.filter((c) => c !== allToken)];
@@ -112,9 +111,7 @@ export default function SearchBar({
     onScrape(keyword.trim(), {
       categories: cats,
       siteLists: selectedLists,
-      maxDays: Math.min(Math.max(Number(maxDays) || 1, 1), 30),
-      maxPages: Math.min(Math.max(Number(maxPages) || 1, 1), 300),
-      aiFilter,
+      maxDays: Math.min(Math.max(Number(maxDays) || 1, 1), 3),
     });
   };
 
@@ -157,7 +154,7 @@ export default function SearchBar({
             options={categoryOptions}
             selected={categories}
             onToggle={toggleCategory}
-            formatOption={(v) => (v === allToken ? t('allCategories') : v)}
+            formatOption={(v) => (v === allToken ? t('allCategories') : categoryLabel(v, lang))}
           />
           <MultiSelect
             label={t('siteListLabel')}
@@ -167,6 +164,7 @@ export default function SearchBar({
             options={siteLists}
             selected={selectedLists}
             onToggle={toggleList}
+            formatOption={(v) => siteListLabel(v, lang)}
           />
         </div>
 
@@ -181,43 +179,11 @@ export default function SearchBar({
             <input
               type="number"
               min="1"
-              max="30"
+              max="3"
               value={maxDays}
               onChange={(e) => setMaxDays(e.target.value)}
               className="w-full bg-dark-input border border-dark-border rounded-lg px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent-green/50 focus:shadow-[0_0_0_3px_rgba(200,245,66,0.08)] transition-all"
             />
-          </div>
-
-          {/* Max Pages */}
-          <div className="flex-1 sm:max-w-[130px]">
-            <label className="text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
-              <FileStack className="w-3 h-3 text-accent-blue" />
-              {t('maxPagesLabel')}
-            </label>
-            <input
-              type="number"
-              min="1"
-              max="300"
-              value={maxPages}
-              onChange={(e) => setMaxPages(e.target.value)}
-              className="w-full bg-dark-input border border-dark-border rounded-lg px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent-green/50 focus:shadow-[0_0_0_3px_rgba(200,245,66,0.08)] transition-all"
-            />
-          </div>
-
-          {/* AI Filter toggle */}
-          <div className="sm:pb-1">
-            <label className="text-xs font-medium text-text-secondary mb-1.5 block">{t('aiFilterLabel')}</label>
-            <button
-              type="button"
-              onClick={() => setAiFilter((v) => !v)}
-              role="switch"
-              aria-checked={aiFilter}
-              className={`relative w-12 h-7 rounded-full transition-colors ${aiFilter ? 'bg-accent-green' : 'bg-dark-border'}`}
-            >
-              <span
-                className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all ${aiFilter ? 'start-6' : 'start-1'}`}
-              />
-            </button>
           </div>
 
           {/* Submit */}
