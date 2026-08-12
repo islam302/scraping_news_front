@@ -11,6 +11,7 @@ import {
   X,
   List as ListIcon,
   ExternalLink,
+  ChevronDown,
 } from 'lucide-react';
 import {
   getCategorySites,
@@ -20,6 +21,7 @@ import {
   deleteCategorySite,
 } from '../services/api';
 import { useLang } from '../context/LangContext';
+import { siteListLabel } from '../i18n/translations';
 import { formatError } from '../utils/errors';
 
 const cardVariants = {
@@ -89,7 +91,7 @@ export default function Sites() {
             onChanged={() => { reloadSites(); reloadLists(); }}
           />
         ) : (
-          <ListsTab siteLists={siteLists} loading={loadingLists} t={t} />
+          <ListsTab siteLists={siteLists} sites={sites} loading={loadingLists} t={t} />
         )}
       </div>
     </div>
@@ -276,10 +278,23 @@ function IconButton({ onClick, label, icon: Icon, accent, disabled }) {
 }
 
 // ============================================================================
-// Lists Tab — read-only (lists are derived from each site's membership)
+// Lists Tab — expandable (lists are derived from each site's membership)
 // ============================================================================
 
-function ListsTab({ siteLists, loading, t }) {
+function ListsTab({ siteLists, sites, loading, t }) {
+  const { lang } = useLang();
+  const [openLists, setOpenLists] = useState(() => new Set());
+
+  const toggle = (name) =>
+    setOpenLists((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+
+  const sitesInList = (name) => sites.filter((s) => (s.site_lists || []).includes(name));
+
   return (
     <>
       <motion.div className="mb-4" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -298,24 +313,78 @@ function ListsTab({ siteLists, loading, t }) {
         </motion.div>
       ) : (
         <div className="grid gap-2 sm:gap-3">
-          {siteLists.map((list, i) => (
-            <motion.div
-              key={list.name}
-              custom={i}
-              initial="hidden"
-              animate="visible"
-              variants={cardVariants}
-              className="bg-dark-card border border-dark-border rounded-xl p-3 sm:p-4 flex items-center gap-3"
-            >
-              <div className="w-9 h-9 bg-accent-cyan/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                <ListIcon className="w-4 h-4 text-accent-cyan" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-text-primary truncate">{list.name}</p>
-                <p className="text-xs text-text-muted">{list.sites} {t('siteCount')}</p>
-              </div>
-            </motion.div>
-          ))}
+          {siteLists.map((list, i) => {
+            const isOpen = openLists.has(list.name);
+            const members = sitesInList(list.name);
+            return (
+              <motion.div
+                key={list.name}
+                custom={i}
+                initial="hidden"
+                animate="visible"
+                variants={cardVariants}
+                className="bg-dark-card border border-dark-border rounded-xl overflow-hidden"
+              >
+                <button
+                  type="button"
+                  onClick={() => toggle(list.name)}
+                  aria-expanded={isOpen}
+                  className="w-full flex items-center gap-3 p-3 sm:p-4 text-start hover:bg-dark-card-hover transition-colors"
+                >
+                  <div className="w-9 h-9 bg-accent-cyan/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <ListIcon className="w-4 h-4 text-accent-cyan" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-text-primary truncate">{siteListLabel(list.name, lang)}</p>
+                    <p className="text-xs text-text-muted">{list.sites} {t('siteCount')}</p>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-text-muted flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      key="body"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-1 border-t border-dark-border space-y-1.5">
+                        {members.length === 0 ? (
+                          <p className="text-sm text-text-muted py-4 text-center">{t('noSitesInList')}</p>
+                        ) : (
+                          members.map((site) => (
+                            <div key={site.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-dark-card-hover transition-colors">
+                              <div className="w-7 h-7 bg-accent-blue/10 rounded-md flex items-center justify-center flex-shrink-0">
+                                <Globe className="w-3.5 h-3.5 text-accent-blue" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm text-text-primary truncate">{site.name}</p>
+                                <p className="text-xs text-text-muted">{(site.categories || []).length} {t('categoryCount')}</p>
+                              </div>
+                              {site.base_url && (
+                                <a
+                                  href={site.base_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title={site.base_url}
+                                  className="w-7 h-7 rounded-md flex items-center justify-center text-accent-blue hover:bg-accent-blue/10 transition-all flex-shrink-0"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
         </div>
       )}
     </>
