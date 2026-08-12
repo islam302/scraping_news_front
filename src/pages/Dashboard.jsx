@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import SearchBar from '../components/SearchBar';
 import StatsCards from '../components/StatsCards';
@@ -5,12 +6,27 @@ import LiveScrapingStatus from '../components/LiveScrapingStatus';
 import ExportButtons from '../components/ExportButtons';
 import AnalyzedReports from '../components/AnalyzedReports';
 import { useMission } from '../hooks/useMission';
+import { getCategories } from '../services/api';
 import { useLang } from '../context/LangContext';
 
 export default function Dashboard() {
   const { mission, loading, error, scrape } = useMission();
   const { t } = useLang();
   const results = mission?.results || [];
+
+  const [availableCategories, setAvailableCategories] = useState([]);
+  const [siteLists, setSiteLists] = useState([]);
+  const [allToken, setAllToken] = useState('all');
+
+  useEffect(() => {
+    getCategories()
+      .then((data) => {
+        setAvailableCategories(data.available_categories || []);
+        setSiteLists(data.site_lists || []);
+        if (data.all_categories_token) setAllToken(data.all_categories_token);
+      })
+      .catch(() => { /* discovery is best-effort; scrape still works with defaults */ });
+  }, []);
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -20,7 +36,13 @@ export default function Dashboard() {
 
       <div className="flex-1 overflow-y-auto">
         <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
-          <SearchBar onScrape={scrape} loading={loading} />
+          <SearchBar
+            onScrape={scrape}
+            loading={loading}
+            availableCategories={availableCategories}
+            siteLists={siteLists}
+            allToken={allToken}
+          />
           <StatsCards mission={mission} />
 
           <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-start">

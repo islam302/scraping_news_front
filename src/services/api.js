@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-// Proxied via Vite (dev) and Vercel rewrites (prod) — API key added server-side
+// Proxied via Vite (dev) and Vercel rewrites (prod) — API key added server-side.
+// Backend is served under FORCE_SCRIPT_NAME = '/scraping-api', so the full base
+// for every route is `/scraping-api/api/...`.
 const BASE_URL = '/scraping-api';
 
 const api = axios.create({
@@ -49,153 +51,64 @@ api.interceptors.response.use(
   },
 );
 
-/** Lightweight probe used by the maintenance page to check if we're back. */
+/** Lightweight public probe used by the maintenance page to check if we're back. */
 export const checkApiHealth = async () => {
-  await api.get('/api/site-lists/');
+  await api.get('/api/categories/');
   return true;
 };
 
+// Join an array (or a single string) into a comma list for query params.
+const toCsv = (value) =>
+  Array.isArray(value) ? value.join(',') : value;
+
 // ============================================================================
-// Site Lists CRUD
+// Categories — discovery (GET /api/categories/)
+// ----------------------------------------------------------------------------
+// Returns { available_categories, categories, site_lists, all_categories_token }.
+// Optionally narrow by site lists: getCategories({ siteLists: ['arabic_sites'] }).
 // ============================================================================
 
-export const getSiteLists = async () => {
-  const { data } = await api.get('/api/site-lists/');
-  return data;
-};
-
-export const getSiteList = async (listName) => {
-  const { data } = await api.get(`/api/site-lists/${encodeURIComponent(listName)}/`);
-  return data;
-};
-
-export const createSiteList = async (name) => {
-  const { data } = await api.post('/api/site-lists/', { name });
-  return data;
-};
-
-export const updateSiteList = async (listName, payload) => {
-  const { data } = await api.put(
-    `/api/site-lists/${encodeURIComponent(listName)}/`,
-    payload,
-  );
-  return data;
-};
-
-export const deleteSiteList = async (listName) => {
-  const { data } = await api.delete(`/api/site-lists/${encodeURIComponent(listName)}/`);
-  return data;
-};
-
-export const addSitesToList = async (listName, siteIds) => {
-  const { data } = await api.post(
-    `/api/site-lists/${encodeURIComponent(listName)}/sites/`,
-    { site_ids: siteIds },
-  );
-  return data;
-};
-
-export const removeSitesFromList = async (listName, siteIds) => {
-  const { data } = await api.delete(
-    `/api/site-lists/${encodeURIComponent(listName)}/sites/`,
-    { data: { site_ids: siteIds } },
-  );
+export const getCategories = async ({ siteLists } = {}) => {
+  const params = {};
+  if (siteLists != null && (Array.isArray(siteLists) ? siteLists.length : siteLists)) {
+    params.site_lists = toCsv(siteLists);
+  }
+  const { data } = await api.get('/api/categories/', { params });
   return data;
 };
 
 // ============================================================================
-// Sites CRUD
-// ============================================================================
-
-export const getSites = async (siteListName) => {
-  const params = siteListName ? { site_list: siteListName } : {};
-  const { data } = await api.get('/api/sites/', { params });
-  return data;
-};
-
-export const addSite = async (siteData) => {
-  const { data } = await api.post('/api/sites/', siteData);
-  return data;
-};
-
-export const updateSite = async (siteId, siteData) => {
-  const { data } = await api.put(`/api/sites/${siteId}/`, siteData);
-  return data;
-};
-
-export const deleteSite = async (siteId) => {
-  const { data } = await api.delete(`/api/sites/${siteId}/`);
-  return data;
-};
-
-// ============================================================================
-// Scraping (Full Pipeline)
+// Category Scrape (POST /api/category-scrape/)
+// ----------------------------------------------------------------------------
+// Every scrape variable from the API contract is supported. Only fields that
+// are explicitly provided are sent, so backend defaults apply otherwise:
+//   categories  (required)  — string[] | string. Pass ['all'] for every category.
+//   site_lists  (optional)  — string[] | string. Omit for all sites.
+//   max_days    (optional)  — int 1–30   (default 7).
+//   max_pages   (optional)  — int 1–300  (default 300).
+//   ai_filter   (optional)  — bool       (default true).
+//   titles_only (optional)  — bool. true → runs inline, returns titles (no mission).
 // ============================================================================
 
 export const startScraping = async (keyword, {
-  categories = ['general', 'political'],
-  maxDays = 1,
-  maxPages = 200,
+  categories = ['general'],
+  siteLists,
+  maxDays,
+  maxPages,
+  aiFilter,
+  titlesOnly,
 } = {}) => {
-  const body = {
-    keyword,
-    categories,
-    max_days: maxDays,
-    max_pages: maxPages,
-  };
+  const body = { keyword, categories };
+
+  if (siteLists != null && (Array.isArray(siteLists) ? siteLists.length : siteLists)) {
+    body.site_lists = siteLists;
+  }
+  if (maxDays != null) body.max_days = maxDays;
+  if (maxPages != null) body.max_pages = maxPages;
+  if (aiFilter != null) body.ai_filter = aiFilter;
+  if (titlesOnly != null) body.titles_only = titlesOnly;
+
   const { data } = await api.post('/api/category-scrape/', body);
-  return data;
-};
-
-// ============================================================================
-// Google Search Only
-// ============================================================================
-
-export const startGoogleSearch = async (keyword, dateFilter = 'none', siteList = []) => {
-  const body = { keyword, date_filter: dateFilter || 'none' };
-  if (Array.isArray(siteList) ? siteList.length > 0 : siteList) {
-    body.site_list = siteList;
-  }
-  const { data } = await api.post('/api/google-search/', body);
-  return data;
-};
-
-// ============================================================================
-// Scheduled Scraping (Recurring)
-// ============================================================================
-
-export const createScheduledScrape = async ({
-  keyword,
-  dateFilter = 'none',
-  siteList = [],
-  intervalHours,
-  durationHours,
-}) => {
-  const body = {
-    keyword,
-    date_filter: dateFilter || 'none',
-    interval_hours: intervalHours,
-    duration_hours: durationHours,
-  };
-  if (Array.isArray(siteList) ? siteList.length > 0 : siteList) {
-    body.site_list = siteList;
-  }
-  const { data } = await api.post('/api/scrape/scheduled/', body);
-  return data;
-};
-
-export const getScheduledScrapes = async () => {
-  const { data } = await api.get('/api/scrape/scheduled/');
-  return data;
-};
-
-export const getScheduledScrape = async (scheduleId) => {
-  const { data } = await api.get(`/api/scrape/scheduled/${scheduleId}/`);
-  return data;
-};
-
-export const stopScheduledScrape = async (scheduleId) => {
-  const { data } = await api.delete(`/api/scrape/scheduled/${scheduleId}/`);
   return data;
 };
 
@@ -223,11 +136,51 @@ export const deleteAllMissions = async () => {
   return data;
 };
 
+// excel_download from the mission response is already a full URL — use it directly.
+export const getDownloadUrl = (excelDownload) => excelDownload;
+
 // ============================================================================
-// Download
+// Category Sites — admin CRUD (GET/POST/PATCH/DELETE /api/category-sites/)
+// ----------------------------------------------------------------------------
+// Site object shape:
+//   { id, name, base_url, site_lists: [], categories: [{ key, label, url }],
+//     js, page_mode, page_wait, load_more, selectors: {...}, is_active, ... }
+// Google-only sources appear with mode: 'google_search' and categories: [].
 // ============================================================================
 
-// excel_download from API is already a full URL, use it directly
-export const getDownloadUrl = (excelDownload) => excelDownload;
+export const getCategorySites = async ({ siteLists } = {}) => {
+  const params = {};
+  if (siteLists != null && (Array.isArray(siteLists) ? siteLists.length : siteLists)) {
+    params.site_lists = toCsv(siteLists);
+  }
+  const { data } = await api.get('/api/category-sites/', { params });
+  return data;
+};
+
+export const getCategorySite = async (siteId) => {
+  const { data } = await api.get(`/api/category-sites/${siteId}/`);
+  return data;
+};
+
+export const createCategorySite = async (siteData) => {
+  const { data } = await api.post('/api/category-sites/', siteData);
+  return data;
+};
+
+export const updateCategorySite = async (siteId, siteData) => {
+  const { data } = await api.patch(`/api/category-sites/${siteId}/`, siteData);
+  return data;
+};
+
+export const deleteCategorySite = async (siteId) => {
+  const { data } = await api.delete(`/api/category-sites/${siteId}/`);
+  return data;
+};
+
+// GET /api/category-site-lists/ → { site_lists: [{ name, sites }] }
+export const getCategorySiteLists = async () => {
+  const { data } = await api.get('/api/category-site-lists/');
+  return data;
+};
 
 export default api;
