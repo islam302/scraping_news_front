@@ -181,7 +181,12 @@ export default function SearchBar({
               min="1"
               max="3"
               value={maxDays}
-              onChange={(e) => setMaxDays(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                // Allow an empty field while typing, otherwise clamp to 1–3.
+                if (v === '') { setMaxDays(''); return; }
+                setMaxDays(String(Math.min(Math.max(Number(v) || 1, 1), 3)));
+              }}
               className="w-full bg-dark-input border border-dark-border rounded-lg px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent-green/50 focus:shadow-[0_0_0_3px_rgba(200,245,66,0.08)] transition-all"
             />
           </div>
