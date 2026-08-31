@@ -378,6 +378,29 @@ export const translations = {
   },
 };
 
+// Canonical category keys (excluding the "all" token), in display order.
+// Used as the fallback when API discovery returns nothing.
+export const DEFAULT_CATEGORIES = [
+  'general',
+  'political',
+  'sport',
+  'economy',
+  'culture',
+  'misc',
+  'local',
+  'social',
+  'regional',
+  'reports',
+  'technology',
+  'health',
+  'security',
+  'environment',
+  'tourism',
+  'parliament',
+  'opinion',
+  'education',
+];
+
 // Display labels for the unified category keys (see frontend.md §5).
 // Falls back to the raw key for any key not listed here.
 export const categoryLabels = {

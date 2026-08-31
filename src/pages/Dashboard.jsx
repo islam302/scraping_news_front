@@ -7,6 +7,7 @@ import ExportButtons from '../components/ExportButtons';
 import AnalyzedReports from '../components/AnalyzedReports';
 import { useMission } from '../hooks/useMission';
 import { getCategories } from '../services/api';
+import { DEFAULT_CATEGORIES } from '../i18n/translations';
 import { useLang } from '../context/LangContext';
 
 export default function Dashboard() {
@@ -14,18 +15,20 @@ export default function Dashboard() {
   const { t } = useLang();
   const results = mission?.results || [];
 
-  const [availableCategories, setAvailableCategories] = useState([]);
+  // Seed with the canonical list so the picker is always populated; API
+  // discovery refines it if the backend returns a non-empty set.
+  const [availableCategories, setAvailableCategories] = useState(DEFAULT_CATEGORIES);
   const [siteLists, setSiteLists] = useState([]);
   const [allToken, setAllToken] = useState('all');
 
   useEffect(() => {
     getCategories()
       .then((data) => {
-        setAvailableCategories(data.available_categories || []);
+        if (data.available_categories?.length) setAvailableCategories(data.available_categories);
         setSiteLists(data.site_lists || []);
         if (data.all_categories_token) setAllToken(data.all_categories_token);
       })
-      .catch(() => { /* discovery is best-effort; scrape still works with defaults */ });
+      .catch(() => { /* discovery is best-effort; the canonical fallback stays */ });
   }, []);
 
   return (
