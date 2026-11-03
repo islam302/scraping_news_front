@@ -19,14 +19,15 @@ export default function Dashboard() {
   // discovery refines it if the backend returns a non-empty set.
   const [availableCategories, setAvailableCategories] = useState(DEFAULT_CATEGORIES);
   const [siteLists, setSiteLists] = useState([]);
-  const [allToken, setAllToken] = useState('all');
+  // Backend caps categories per search (MAX_CATEGORIES_PER_REQUEST); 5 until discovery says otherwise.
+  const [maxCategories, setMaxCategories] = useState(5);
 
   useEffect(() => {
     getCategories()
       .then((data) => {
         if (data.available_categories?.length) setAvailableCategories(data.available_categories);
         setSiteLists(data.site_lists || []);
-        if (data.all_categories_token) setAllToken(data.all_categories_token);
+        if (Number(data.max_categories_per_request) > 0) setMaxCategories(Number(data.max_categories_per_request));
       })
       .catch(() => { /* discovery is best-effort; the canonical fallback stays */ });
   }, []);
@@ -44,7 +45,7 @@ export default function Dashboard() {
             loading={loading}
             availableCategories={availableCategories}
             siteLists={siteLists}
-            allToken={allToken}
+            maxCategories={maxCategories}
           />
           <StatsCards mission={mission} />
 

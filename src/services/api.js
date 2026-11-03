@@ -64,7 +64,7 @@ const toCsv = (value) =>
 // ============================================================================
 // Categories — discovery (GET /api/categories/)
 // ----------------------------------------------------------------------------
-// Returns { available_categories, categories, site_lists, all_categories_token }.
+// Returns { available_categories, categories, site_lists, max_categories_per_request }.
 // Optionally narrow by site lists: getCategories({ siteLists: ['arabic_sites'] }).
 // ============================================================================
 
@@ -82,7 +82,7 @@ export const getCategories = async ({ siteLists } = {}) => {
 // ----------------------------------------------------------------------------
 // Every scrape variable from the API contract is supported. Only fields that
 // are explicitly provided are sent, so backend defaults apply otherwise:
-//   categories  (required)  — string[] | string. Pass ['all'] for every category.
+//   categories  (required)  — string[] | string. 1–5 category keys (no "all" option).
 //   site_lists  (optional)  — string[] | string. Omit for all sites.
 //   max_days    (optional)  — int 1–30   (default 7).
 //   max_pages   (optional)  — int 1–300  (default 300).

@@ -5,13 +5,20 @@ import { useLang } from '../context/LangContext';
 import { categoryLabel, siteListLabel } from '../i18n/translations';
 
 // Compact multi-select dropdown used for categories + site lists.
-function MultiSelect({ label, icon: Icon, iconColor, placeholder, options, selected, onToggle, formatOption }) {
+// `max` (optional) caps the selection: once reached, unselected options are disabled.
+function MultiSelect({ label, icon: Icon, iconColor, placeholder, options, selected, onToggle, formatOption, max, limitNote }) {
   const [open, setOpen] = useState(false);
+  const atLimit = max != null && selected.length >= max;
   return (
     <div className="relative flex-1">
       <label className="text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
         <Icon className={`w-3 h-3 ${iconColor}`} />
         {label}
+        {max != null && (
+          <span className={`ms-auto tabular-nums ${atLimit ? 'text-accent-green' : 'text-text-muted'}`}>
+            {selected.length}/{max}
+          </span>
+        )}
       </label>
       <button
         type="button"
@@ -35,18 +42,29 @@ function MultiSelect({ label, icon: Icon, iconColor, placeholder, options, selec
             exit={{ opacity: 0, y: -5 }}
             transition={{ duration: 0.15 }}
           >
+            {limitNote && (
+              <p className={`sticky top-0 z-10 px-4 py-2 text-xs border-b border-dark-border bg-dark-card ${atLimit ? 'text-accent-green' : 'text-text-muted'}`}>
+                {limitNote}
+              </p>
+            )}
             {options.length === 0 ? (
               <p className="px-4 py-3 text-xs text-text-muted">—</p>
             ) : (
               options.map((opt) => {
                 const isSelected = selected.includes(opt);
+                const isDisabled = atLimit && !isSelected;
                 return (
                   <button
                     key={opt}
                     type="button"
+                    disabled={isDisabled}
                     onClick={() => onToggle(opt)}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-start ${
-                      isSelected ? 'bg-accent-green/10 text-accent-green' : 'text-text-primary hover:bg-dark-card-hover'
+                      isSelected
+                        ? 'bg-accent-green/10 text-accent-green'
+                        : isDisabled
+                          ? 'text-text-muted opacity-50 cursor-not-allowed'
+                          : 'text-text-primary hover:bg-dark-card-hover'
                     }`}
                   >
                     <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all ${
@@ -73,7 +91,7 @@ export default function SearchBar({
   loading,
   availableCategories = [],
   siteLists = [],
-  allToken = 'all',
+  maxCategories = 5,
 }) {
   const { t, lang } = useLang();
   const [keyword, setKeyword] = useState('');
@@ -81,20 +99,14 @@ export default function SearchBar({
   const [selectedLists, setSelectedLists] = useState([]);
   const [maxDays, setMaxDays] = useState(1);
 
-  // Category options: the "all" token first, then every discovered key.
-  const categoryOptions = [allToken, ...availableCategories.filter((c) => c !== allToken)];
+  // No "all categories" option — the backend requires 1..maxCategories explicit keys.
+  const categoryOptions = availableCategories.filter((c) => c !== 'all');
 
   const toggleCategory = (key) => {
-    if (key === allToken) {
-      // "all" is exclusive — picking it clears everything else.
-      setCategories((prev) => (prev.includes(allToken) ? [] : [allToken]));
-      return;
-    }
     setCategories((prev) => {
-      const withoutAll = prev.filter((c) => c !== allToken);
-      return withoutAll.includes(key)
-        ? withoutAll.filter((c) => c !== key)
-        : [...withoutAll, key];
+      if (prev.includes(key)) return prev.filter((c) => c !== key);
+      if (prev.length >= maxCategories) return prev; // limit reached
+      return [...prev, key];
     });
   };
 
@@ -107,7 +119,7 @@ export default function SearchBar({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!keyword.trim() || loading) return;
-    const cats = categories.length > 0 ? categories : ['general'];
+    const cats = categories.length > 0 ? categories.slice(0, maxCategories) : ['general'];
     onScrape(keyword.trim(), {
       categories: cats,
       siteLists: selectedLists,
@@ -154,7 +166,10 @@ export default function SearchBar({
             options={categoryOptions}
             selected={categories}
             onToggle={toggleCategory}
-            formatOption={(v) => (v === allToken ? t('allCategories') : categoryLabel(v, lang))}
+            formatOption={(v) => categoryLabel(v, lang)}
+            max={maxCategories}
+            limitNote={t(categories.length >= maxCategories ? 'maxCategoriesReached' : 'maxCategoriesHint')
+              .replace('{n}', maxCategories)}
           />
           <MultiSelect
             label={t('siteListLabel')}
