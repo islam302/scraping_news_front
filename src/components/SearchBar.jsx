@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Calendar, Bot, Sparkles, Globe, Layers, Check, ChevronDown } from 'lucide-react';
 import { useLang } from '../context/LangContext';
@@ -86,12 +86,16 @@ function MultiSelect({ label, icon: Icon, iconColor, placeholder, options, selec
   );
 }
 
+// Upper bound for the "max days" search window (the backend accepts up to 30).
+const MAX_DAYS = 5;
+
 export default function SearchBar({
   onScrape,
   loading,
   availableCategories = [],
   siteLists = [],
   maxCategories = 5,
+  onSiteListsChange,
 }) {
   const { t, lang } = useLang();
   const [keyword, setKeyword] = useState('');
@@ -101,6 +105,21 @@ export default function SearchBar({
 
   // No "all categories" option — the backend requires 1..maxCategories explicit keys.
   const categoryOptions = availableCategories.filter((c) => c !== 'all');
+  // Categories dropped because the chosen site lists don't offer them.
+  const [removedCategories, setRemovedCategories] = useState([]);
+
+  // When the offered categories change (site lists changed), drop any selected
+  // key that is no longer offered and tell the user which ones went.
+  useEffect(() => {
+    if (!categoryOptions.length) return;
+    setCategories((prev) => {
+      const kept = prev.filter((c) => categoryOptions.includes(c));
+      setRemovedCategories(prev.filter((c) => !categoryOptions.includes(c)));
+      if (kept.length) return kept;
+      return [categoryOptions.includes('general') ? 'general' : categoryOptions[0]];
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableCategories]);
 
   const toggleCategory = (key) => {
     setCategories((prev) => {
@@ -111,19 +130,24 @@ export default function SearchBar({
   };
 
   const toggleList = (name) => {
-    setSelectedLists((prev) =>
-      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
-    );
+    const next = selectedLists.includes(name)
+      ? selectedLists.filter((n) => n !== name)
+      : [...selectedLists, name];
+    setSelectedLists(next);
+    onSiteListsChange?.(next);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!keyword.trim() || loading) return;
-    const cats = categories.length > 0 ? categories.slice(0, maxCategories) : ['general'];
+    const fallback = categoryOptions.includes('general') ? 'general' : categoryOptions[0];
+    const cats = categories.length > 0
+      ? categories.slice(0, maxCategories)
+      : (fallback ? [fallback] : ['general']);
     onScrape(keyword.trim(), {
       categories: cats,
       siteLists: selectedLists,
-      maxDays: Math.min(Math.max(Number(maxDays) || 1, 1), 3),
+      maxDays: Math.min(Math.max(Number(maxDays) || 1, 1), MAX_DAYS),
     });
   };
 
@@ -182,6 +206,13 @@ export default function SearchBar({
             formatOption={(v) => siteListLabel(v, lang)}
           />
         </div>
+        {removedCategories.length > 0 && (
+          <p className="text-xs text-accent-cyan -mt-2">
+            {t('categoriesRemoved').replace(
+              '{list}', removedCategories.map((c) => categoryLabel(c, lang)).join('، '),
+            )}
+          </p>
+        )}
 
         {/* Max Days + Max Pages + AI Filter + Submit */}
         <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
@@ -194,13 +225,13 @@ export default function SearchBar({
             <input
               type="number"
               min="1"
-              max="3"
+              max={MAX_DAYS}
               value={maxDays}
               onChange={(e) => {
                 const v = e.target.value;
-                // Allow an empty field while typing, otherwise clamp to 1–3.
+                // Allow an empty field while typing, otherwise clamp to 1–MAX_DAYS.
                 if (v === '') { setMaxDays(''); return; }
-                setMaxDays(String(Math.min(Math.max(Number(v) || 1, 1), 3)));
+                setMaxDays(String(Math.min(Math.max(Number(v) || 1, 1), MAX_DAYS)));
               }}
               className="w-full bg-dark-input border border-dark-border rounded-lg px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent-green/50 focus:shadow-[0_0_0_3px_rgba(200,245,66,0.08)] transition-all"
             />

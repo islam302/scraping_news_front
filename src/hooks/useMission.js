@@ -10,6 +10,8 @@ export function useMission() {
   const [mission, setMission] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  // Categories the backend skipped because no site in the chosen lists has them.
+  const [skippedCategories, setSkippedCategories] = useState([]);
   const pollRef = useRef(null);
 
   const stopPolling = useCallback(() => {
@@ -45,8 +47,10 @@ export function useMission() {
     setLoading(true);
     setError(null);
     setMission(null);
+    setSkippedCategories([]);
     try {
       const data = await startScraping(keyword, options);
+      setSkippedCategories(data.skipped_categories || []);
       setMission({ mission_id: data.mission_id, status: data.status, keyword });
       pollMission(data.mission_id);
     } catch (err) {
@@ -72,5 +76,5 @@ export function useMission() {
     }
   }, [pollMission, t]);
 
-  return { mission, loading, error, scrape, loadMission, stopPolling };
+  return { mission, loading, error, skippedCategories, scrape, loadMission, stopPolling };
 }

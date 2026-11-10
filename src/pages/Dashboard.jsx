@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Header from '../components/Header';
 import SearchBar from '../components/SearchBar';
 import StatsCards from '../components/StatsCards';
@@ -7,12 +7,12 @@ import ExportButtons from '../components/ExportButtons';
 import AnalyzedReports from '../components/AnalyzedReports';
 import { useMission } from '../hooks/useMission';
 import { getCategories } from '../services/api';
-import { DEFAULT_CATEGORIES } from '../i18n/translations';
+import { DEFAULT_CATEGORIES, categoryLabel } from '../i18n/translations';
 import { useLang } from '../context/LangContext';
 
 export default function Dashboard() {
-  const { mission, loading, error, scrape } = useMission();
-  const { t } = useLang();
+  const { mission, loading, error, skippedCategories, scrape } = useMission();
+  const { t, lang } = useLang();
   const results = mission?.results || [];
 
   // Seed with the canonical list so the picker is always populated; API
@@ -32,6 +32,20 @@ export default function Dashboard() {
       .catch(() => { /* discovery is best-effort; the canonical fallback stays */ });
   }, []);
 
+  // Categories depend on the chosen site lists (e.g. the Gulf agencies have no
+  // "security" section). Re-ask the backend whenever the selection changes so
+  // the picker only offers categories that will actually be searched.
+  const listsRequest = useRef(0);
+  const handleSiteListsChange = (lists) => {
+    const reqId = ++listsRequest.current;
+    getCategories({ siteLists: lists })
+      .then((data) => {
+        if (reqId !== listsRequest.current) return; // a newer selection won
+        setAvailableCategories(data.available_categories || []);
+      })
+      .catch(() => { /* keep the current list; the backend still skips unknown ones */ });
+  };
+
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div className="hidden lg:block">
@@ -46,6 +60,7 @@ export default function Dashboard() {
             availableCategories={availableCategories}
             siteLists={siteLists}
             maxCategories={maxCategories}
+            onSiteListsChange={handleSiteListsChange}
           />
           <StatsCards mission={mission} />
 
@@ -55,6 +70,14 @@ export default function Dashboard() {
             </div>
             <ExportButtons mission={mission} />
           </div>
+
+          {skippedCategories.length > 0 && (
+            <div className="bg-accent-cyan/10 border border-accent-cyan/30 rounded-xl p-4 text-sm text-accent-cyan">
+              {t('categoriesSkipped').replace(
+                '{list}', skippedCategories.map((c) => categoryLabel(c, lang)).join('، '),
+              )}
+            </div>
+          )}
 
           {error && (
             <div className="bg-accent-red/10 border border-accent-red/30 rounded-xl p-4 text-sm text-accent-red">

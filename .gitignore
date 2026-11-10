@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local-only dev login users (vite.local.config.js) — never commit
+.local-auth.json
