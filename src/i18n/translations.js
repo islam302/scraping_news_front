@@ -88,6 +88,8 @@ export const translations = {
     after: 'After',
     siteBreakdown: 'Site Breakdown',
     downloadExcel: 'Download Excel',
+    autoAddedCategories: 'Also searched automatically',
+    autoAddedCategoriesHint: 'Added by the tool from its understanding of the search, so related coverage filed under other sections is not missed.',
     moreResults: 'more results',
     failedToLoad: 'Failed to load mission details.',
 
@@ -280,6 +282,8 @@ export const translations = {
     after: 'بعد',
     siteBreakdown: 'تفصيل المواقع',
     downloadExcel: 'تحميل Excel',
+    autoAddedCategories: 'تصنيفات أضافتها الأداة تلقائياً',
+    autoAddedCategoriesHint: 'أضافتها الأداة بناءً على فهمها لموضوع البحث، حتى لا تفوتها أخبار الحدث المنشورة في أقسام أخرى.',
     moreResults: 'نتائج إضافية',
     failedToLoad: 'فشل تحميل تفاصيل المهمة.',
 

@@ -12,9 +12,11 @@ import {
   Download,
   ExternalLink,
   AlertTriangle,
+  Sparkles,
 } from 'lucide-react';
 import { getMissionStatus, getDownloadUrl } from '../services/api';
 import { useLang } from '../context/LangContext';
+import { categoryLabel } from '../i18n/translations';
 import { formatError } from '../utils/errors';
 
 function formatDate(dateStr) {
@@ -46,7 +48,7 @@ function statusColor(status) {
 export default function MissionDetail() {
   const { missionId } = useParams();
   const navigate = useNavigate();
-  const { t, isRTL } = useLang();
+  const { t, isRTL, lang } = useLang();
   const [mission, setMission] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -84,6 +86,9 @@ export default function MissionDetail() {
   const percent = mission?.status === 'completed' ? 100 : total > 0 ? Math.round((done / total) * 100) : 0;
   const isActive = mission && ['pending', 'scraping', 'filtering'].includes(mission.status);
   const results = mission?.results || [];
+  const addedCategories = Array.isArray(mission?.site_stats?.categories_added)
+    ? mission.site_stats.categories_added
+    : [];
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -147,6 +152,20 @@ export default function MissionDetail() {
                   <p className="text-sm text-text-primary">{mission.total_results ?? '--'}</p>
                 </div>
               </div>
+
+              {addedCategories.length > 0 && (
+                <div className="mt-4 flex flex-wrap items-center gap-2" title={t('autoAddedCategoriesHint')}>
+                  <span className="flex items-center gap-1.5 text-xs text-text-muted">
+                    <Sparkles className="w-3.5 h-3.5 text-accent-cyan" />
+                    {t('autoAddedCategories')}:
+                  </span>
+                  {addedCategories.map((c) => (
+                    <span key={c} className="text-xs text-accent-cyan bg-accent-cyan/10 px-2 py-0.5 rounded-full">
+                      {categoryLabel(c, lang)}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               {isActive && (
                 <div className="mt-4">
