@@ -7,13 +7,17 @@
 //   * /auth-api is answered HERE by a local-only login (localDevAuth below),
 //     so you can sign in without an account on the shared auth service. The
 //     test users live in .local-auth.json (gitignored) — never in the real
-//     auth API. The scraping API itself doesn't need the token: the proxy adds
-//     the X-API-Key header exactly like the normal dev setup.
+//     auth API. /scraping-api goes through the same proxy core as production
+//     (api/_lib/proxyCore.js): it requires one of these local sessions and adds
+//     the X-API-Key from SCRAPING_API_KEY in .env.local.
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { defineConfig, mergeConfig } from 'vite'
-import base from './vite.config.js'
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+import { scrapingProxyPlugin, serverEnv } from './vite.config.js'
+import { decodeJwtPayload } from './api/_lib/proxyCore.js'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const USERS_FILE = path.join(here, '.local-auth.json')
@@ -84,19 +88,29 @@ function localDevAuth() {
   }
 }
 
-export default mergeConfig(base, defineConfig({
-  plugins: [localDevAuth()],
-  server: {
-    port: 5174,
-    proxy: {
-      // /auth-api never reaches the shared auth service: localDevAuth's
-      // middleware runs before Vite's proxy and answers every /auth-api route.
-      '/scraping-api': {
-        target: 'http://127.0.0.1:8000',
-        changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/scraping-api/, ''),
-        configure: base.server.proxy['/scraping-api'].configure,
-      },
-    },
-  },
-}))
+// Local sessions are the unsigned tokens minted above: accept only those, and
+// only while unexpired. (The remote verifier would reject them.)
+const verifyLocalToken = async (token) => {
+  const parts = String(token).split('.')
+  if (parts.length !== 3 || parts[2] !== 'local-dev') return false
+  const payload = decodeJwtPayload(token)
+  return !!payload && typeof payload.exp === 'number' && payload.exp * 1000 > Date.now()
+}
+
+export default defineConfig({
+  plugins: [
+    react(),
+    tailwindcss(),
+    localDevAuth(),
+    scrapingProxyPlugin({
+      // runserver serves the API at /api/... directly (no /scraping-api prefix).
+      upstream: 'http://127.0.0.1:8000',
+      apiKey: serverEnv('SCRAPING_API_KEY'),
+      verifyToken: verifyLocalToken,
+      // The local backend would try to validate these fake JWTs against the real
+      // auth service; identify as the service key instead.
+      forwardAuthorization: false,
+    }),
+  ],
+  server: { port: 5174 },
+})

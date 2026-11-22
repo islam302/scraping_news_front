@@ -17,7 +17,7 @@ import Maintenance from './pages/Maintenance';
 function ProtectedLayout() {
   const { authed } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const location = useLocation();
+  useLocation(); // keep re-rendering the layout on route change
 
   if (!authed) return <Navigate to="/login" replace />;
 
@@ -41,7 +41,7 @@ function ProtectedLayout() {
         </div>
       )}
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 una-backdrop">
         {/* Mobile header with hamburger */}
         <div className="lg:hidden">
           <MobileHeader onMenuClick={() => setSidebarOpen(true)} />

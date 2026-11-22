@@ -2,20 +2,25 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { List, LayoutGrid, ExternalLink, FileText } from 'lucide-react';
 import { useLang } from '../context/LangContext';
+import { safeHttpUrl } from '../utils/url';
+
+const siteName = (site) => (typeof site === 'string' ? site.replace(/\s*\(Google\)/gi, '') : '');
 
 function ReportCard({ result, index }) {
+  const link = safeHttpUrl(result?.Link);
+  const image = safeHttpUrl(result?.Image);
   return (
     <motion.div
-      className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden hover:border-accent-green/20 hover:shadow-[0_0_20px_rgba(200,245,66,0.06)] transition-all duration-300 group"
+      className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden hover:border-accent-green/20 hover:shadow-[0_0_20px_rgb(var(--brand-rgb)/0.06)] transition-all duration-300 group"
       initial={{ opacity: 0, y: 15, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ delay: index * 0.04, duration: 0.3 }}
       whileHover={{ y: -3 }}
     >
-      {result.Image && (
+      {image && (
         <div className="w-full h-72 overflow-hidden bg-dark-border">
           <img
-            src={result.Image}
+            src={image}
             alt={result.Title}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement.style.display = 'none'; }}
@@ -29,11 +34,11 @@ function ReportCard({ result, index }) {
         <p className="text-xs text-text-secondary mb-3 line-clamp-2">{result.Paragraph}</p>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-dark-bg bg-accent-green/80 px-1.5 py-0.5 rounded font-medium">{result.Site?.replace(/\s*\(Google\)/gi, '')}</span>
+            <span className="text-[11px] text-on-accent bg-accent-green/80 px-1.5 py-0.5 rounded font-medium">{siteName(result.Site)}</span>
             <span className="text-xs text-text-muted">{result.Date}</span>
           </div>
-          {result.Link && (
-            <a href={result.Link} target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-accent-blue transition-colors duration-200">
+          {link && (
+            <a href={link} target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-accent-blue transition-colors duration-200">
               <ExternalLink className="w-4 h-4" />
             </a>
           )}
@@ -44,17 +49,19 @@ function ReportCard({ result, index }) {
 }
 
 function ReportListItem({ result, index }) {
+  const link = safeHttpUrl(result?.Link);
+  const image = safeHttpUrl(result?.Image);
   return (
     <motion.div
-      className="bg-dark-card border border-dark-border rounded-xl p-4 flex items-center gap-4 hover:border-accent-green/20 hover:shadow-[0_0_15px_rgba(200,245,66,0.05)] transition-all duration-300 group"
+      className="bg-dark-card border border-dark-border rounded-xl p-4 flex items-center gap-4 hover:border-accent-green/20 hover:shadow-[0_0_15px_rgb(var(--brand-rgb)/0.05)] transition-all duration-300 group"
       initial={{ opacity: 0, x: -15 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.03, duration: 0.3 }}
     >
-      {result.Image && (
+      {image && (
         <div className="w-20 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-dark-border">
           <img
-            src={result.Image}
+            src={image}
             alt={result.Title}
             className="w-full h-full object-cover"
             onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement.style.display = 'none'; }}
@@ -65,12 +72,12 @@ function ReportListItem({ result, index }) {
         <h3 className="text-sm font-semibold text-text-primary truncate group-hover:text-accent-green transition-colors duration-200">{result.Title}</h3>
         <p className="text-xs text-text-secondary truncate">{result.Paragraph}</p>
         <div className="flex items-center gap-2 mt-1">
-          <span className="text-[11px] text-dark-bg bg-accent-green/80 px-1.5 py-0.5 rounded font-medium">{result.Site?.replace(/\s*\(Google\)/gi, '')}</span>
+          <span className="text-[11px] text-on-accent bg-accent-green/80 px-1.5 py-0.5 rounded font-medium">{siteName(result.Site)}</span>
           <span className="text-xs text-text-muted">{result.Date}</span>
         </div>
       </div>
-      {result.Link && (
-        <a href={result.Link} target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-accent-blue transition-colors duration-200 flex-shrink-0">
+      {link && (
+        <a href={link} target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-accent-blue transition-colors duration-200 flex-shrink-0">
           <ExternalLink className="w-4 h-4" />
         </a>
       )}
@@ -78,7 +85,8 @@ function ReportListItem({ result, index }) {
   );
 }
 
-export default function AnalyzedReports({ results = [] }) {
+export default function AnalyzedReports({ results: rawResults }) {
+  const results = Array.isArray(rawResults) ? rawResults : [];
   const { t } = useLang();
   const [viewMode, setViewMode] = useState('grid');
 

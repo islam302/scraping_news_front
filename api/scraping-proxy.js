@@ -1,39 +1,20 @@
-export default async function handler(req, res) {
-  const path = req.url.replace(/^\/scraping-api/, '');
-  const target = `https://una-ai-tools-apis.una-oic.org/scraping-api${path}`;
+// Vercel serverless function behind the /scraping-api/* rewrite (vercel.json).
+// All logic lives in ./_lib/proxyCore.js (shared with the Vite dev servers).
+//
+// Required environment variables (Vercel → Project → Settings → Environment Variables):
+//   SCRAPING_API_KEY        Service API key for the scraping API (server-side secret).
+// Optional:
+//   SCRAPING_API_UPSTREAM   default https://una-ai-tools-apis.una-oic.org/scraping-api
+//   AUTH_VERIFY_URL         default https://una-ai-tools-apis.una-oic.org/auth-api/api/auth/token/verify/
+import { createProxyHandler, createTokenVerifier } from './_lib/proxyCore.js';
 
-  const headers = {
-    'Content-Type': 'application/json',
-    'X-API-Key': 'nra_ce35c0f17f8ab7e1446eb14af61baf247e17aca000693b4ee4a0984e',
-  };
+const UPSTREAM = process.env.SCRAPING_API_UPSTREAM
+  || 'https://una-ai-tools-apis.una-oic.org/scraping-api';
+const VERIFY_URL = process.env.AUTH_VERIFY_URL
+  || 'https://una-ai-tools-apis.una-oic.org/auth-api/api/auth/token/verify/';
 
-  const fetchOptions = {
-    method: req.method,
-    headers,
-  };
-
-  if (req.method !== 'GET' && req.method !== 'HEAD') {
-    const chunks = [];
-    for await (const chunk of req) chunks.push(chunk);
-    const body = Buffer.concat(chunks).toString();
-    if (body) fetchOptions.body = body;
-  }
-
-  try {
-    const response = await fetch(target, fetchOptions);
-    const contentType = response.headers.get('content-type') || '';
-
-    res.setHeader('Content-Type', contentType);
-    res.status(response.status);
-
-    if (contentType.includes('application/json')) {
-      const data = await response.text();
-      res.send(data);
-    } else {
-      const buffer = await response.arrayBuffer();
-      res.send(Buffer.from(buffer));
-    }
-  } catch (err) {
-    res.status(500).json({ error: 'Proxy error' });
-  }
-}
+export default createProxyHandler({
+  upstream: UPSTREAM,
+  apiKey: process.env.SCRAPING_API_KEY,
+  verifyToken: createTokenVerifier({ verifyUrl: VERIFY_URL }),
+});

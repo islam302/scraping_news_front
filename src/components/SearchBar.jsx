@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Calendar, Bot, Sparkles, Globe, Layers, Check, ChevronDown } from 'lucide-react';
+import { Search, Calendar, Bot, Sparkles, Globe, Layers, Check, ChevronDown, Radar } from 'lucide-react';
+import Logo from './Logo';
 import { useLang } from '../context/LangContext';
 import { categoryLabel, siteListLabel } from '../i18n/translations';
 
@@ -23,7 +24,7 @@ function MultiSelect({ label, icon: Icon, iconColor, placeholder, options, selec
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between bg-dark-input border border-dark-border rounded-lg px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent-green/50 focus:shadow-[0_0_0_3px_rgba(200,245,66,0.08)] transition-all"
+        className="w-full flex items-center justify-between bg-dark-input border border-dark-border rounded-lg px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent-green/50 focus:shadow-[0_0_0_3px_rgb(var(--brand-rgb)/0.08)] transition-all"
       >
         <span className={`truncate ${selected.length === 0 ? 'text-text-muted' : ''}`}>
           {selected.length === 0
@@ -70,7 +71,7 @@ function MultiSelect({ label, icon: Icon, iconColor, placeholder, options, selec
                     <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all ${
                       isSelected ? 'bg-accent-green border-accent-green' : 'border-text-muted/40'
                     }`}>
-                      {isSelected && <Check className="w-3 h-3 text-dark-bg" />}
+                      {isSelected && <Check className="w-3 h-3 text-on-accent" />}
                     </div>
                     <span className="truncate">{formatOption ? formatOption(opt) : opt}</span>
                   </button>
@@ -88,12 +89,18 @@ function MultiSelect({ label, icon: Icon, iconColor, placeholder, options, selec
 
 // Upper bound for the "max days" search window (the backend accepts up to 30).
 const MAX_DAYS = 5;
+// Mission.keyword max_length on the backend.
+const MAX_KEYWORD_LENGTH = 500;
+const NO_OPTIONS = [];
+
+/** Clamp a max-days input to an integer in 1..MAX_DAYS (1 for junk). */
+const clampDays = (v) => Math.min(Math.max(Math.trunc(Number(v)) || 1, 1), MAX_DAYS);
 
 export default function SearchBar({
   onScrape,
   loading,
-  availableCategories = [],
-  siteLists = [],
+  availableCategories = NO_OPTIONS,
+  siteLists = NO_OPTIONS,
   maxCategories = 5,
   onSiteListsChange,
 }) {
@@ -111,11 +118,13 @@ export default function SearchBar({
   // When the offered categories change (site lists changed), drop any selected
   // key that is no longer offered and tell the user which ones went.
   useEffect(() => {
-    if (!categoryOptions.length) return;
     setCategories((prev) => {
       const kept = prev.filter((c) => categoryOptions.includes(c));
-      setRemovedCategories(prev.filter((c) => !categoryOptions.includes(c)));
-      if (kept.length) return kept;
+      const removed = prev.filter((c) => !categoryOptions.includes(c));
+      setRemovedCategories((old) => (removed.length || old.length ? removed : old));
+      // Nothing offered for the chosen site lists → nothing can be selected.
+      if (!categoryOptions.length) return prev.length ? [] : prev;
+      if (kept.length) return kept.length === prev.length ? prev : kept;
       return [categoryOptions.includes('general') ? 'general' : categoryOptions[0]];
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -139,29 +148,47 @@ export default function SearchBar({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!keyword.trim() || loading) return;
+    const kw = keyword.trim();
+    if (!kw || loading) return;
     const fallback = categoryOptions.includes('general') ? 'general' : categoryOptions[0];
     const cats = categories.length > 0
       ? categories.slice(0, maxCategories)
-      : (fallback ? [fallback] : ['general']);
-    onScrape(keyword.trim(), {
+      : (fallback ? [fallback] : []);
+    if (!cats.length) return; // the chosen site lists offer no category at all
+    onScrape(kw.slice(0, MAX_KEYWORD_LENGTH), {
       categories: cats,
       siteLists: selectedLists,
-      maxDays: Math.min(Math.max(Number(maxDays) || 1, 1), MAX_DAYS),
+      maxDays: clampDays(maxDays),
     });
   };
 
-  const canSubmit = keyword.trim() && !loading;
+  const canSubmit = Boolean(keyword.trim()) && !loading && (categories.length > 0 || categoryOptions.length > 0);
 
   return (
     <motion.form
       onSubmit={handleSubmit}
-      className="bg-dark-card rounded-2xl border border-dark-border p-4 sm:p-5 hover:border-dark-card-hover transition-colors duration-300"
+      className="bg-dark-card rounded-2xl border border-dark-border overflow-visible"
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <div className="space-y-4">
+      {/* Hero strip */}
+      <div className="una-strip relative overflow-hidden rounded-t-2xl px-4 sm:px-5 py-4 text-white">
+        <div className="absolute -top-10 -end-6 opacity-15 pointer-events-none">
+          <Logo size={150} animate={false} className="text-white" />
+        </div>
+        <div className="relative flex items-center gap-3">
+          <span className="w-10 h-10 rounded-xl bg-white/15 ring-1 ring-white/25 flex items-center justify-center">
+            <Radar className="w-5 h-5" />
+          </span>
+          <div>
+            <h2 className="text-base sm:text-lg font-bold leading-tight">{t('newMonitorTitle')}</h2>
+            <p className="text-xs text-white/75">{t('newMonitorDesc')}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4 p-4 sm:p-5">
         {/* Keyword */}
         <div>
           <label className="text-xs font-medium text-text-secondary mb-1.5 flex items-center gap-1.5">
@@ -174,8 +201,9 @@ export default function SearchBar({
               type="text"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
+              maxLength={MAX_KEYWORD_LENGTH}
               placeholder={t('keywordsPlaceholder')}
-              className="w-full bg-dark-input border border-dark-border rounded-lg ps-10 pe-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-green/50 focus:shadow-[0_0_0_3px_rgba(200,245,66,0.08)] transition-all"
+              className="w-full bg-dark-input border border-dark-border rounded-xl ps-10 pe-4 py-3 text-[15px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-green/50 focus:shadow-[0_0_0_3px_rgb(var(--brand-rgb)/0.08)] transition-all"
             />
           </div>
         </div>
@@ -231,9 +259,9 @@ export default function SearchBar({
                 const v = e.target.value;
                 // Allow an empty field while typing, otherwise clamp to 1–MAX_DAYS.
                 if (v === '') { setMaxDays(''); return; }
-                setMaxDays(String(Math.min(Math.max(Number(v) || 1, 1), MAX_DAYS)));
+                setMaxDays(String(clampDays(v)));
               }}
-              className="w-full bg-dark-input border border-dark-border rounded-lg px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent-green/50 focus:shadow-[0_0_0_3px_rgba(200,245,66,0.08)] transition-all"
+              className="w-full bg-dark-input border border-dark-border rounded-lg px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent-green/50 focus:shadow-[0_0_0_3px_rgb(var(--brand-rgb)/0.08)] transition-all"
             />
           </div>
 
@@ -241,7 +269,7 @@ export default function SearchBar({
           <motion.button
             type="submit"
             disabled={!canSubmit}
-            className="flex items-center justify-center gap-2 bg-accent-green text-dark-bg font-semibold px-6 py-2.5 rounded-lg text-sm hover:shadow-[0_0_20px_rgba(200,245,66,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none sm:ms-auto"
+            className="flex items-center justify-center gap-2 bg-accent-green text-on-accent font-semibold px-6 py-2.5 rounded-xl text-sm shadow-[0_8px_20px_-8px_rgb(var(--brand-rgb)/0.6)] hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none sm:ms-auto"
             whileHover={canSubmit ? { scale: 1.02 } : {}}
             whileTap={canSubmit ? { scale: 0.97 } : {}}
           >

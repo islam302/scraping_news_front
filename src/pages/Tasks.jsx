@@ -17,25 +17,44 @@ import {
 import { getMissions, deleteMission } from '../services/api';
 import { useLang } from '../context/LangContext';
 import { formatError } from '../utils/errors';
+import { formatDate, statusLabel } from '../utils/format';
+
+// Bulk delete runs at most this many DELETEs at once (a select-all of 50 must
+// not burst 50 parallel requests into the rate limiter).
+const DELETE_CONCURRENCY = 3;
+
+/** Run `worker` over `items` with bounded concurrency; returns allSettled-style results. */
+async function runLimited(items, limit, worker) {
+  const results = new Array(items.length);
+  let next = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const idx = next++;
+      try {
+        results[idx] = { status: 'fulfilled', value: await worker(items[idx]) };
+      } catch (reason) {
+        results[idx] = { status: 'rejected', reason };
+      }
+    }
+  });
+  await Promise.all(runners);
+  return results;
+}
 
 function statusBadge(status, t) {
   switch (status) {
     case 'completed':
-      return (<span className="flex items-center gap-1 text-xs font-medium text-accent-green bg-accent-green/10 px-2.5 py-1 rounded-full"><CheckCircle2 className="w-3 h-3" /> {t('completed')}</span>);
+      return (<span className="flex items-center gap-1 text-xs font-medium text-accent-green bg-accent-green/10 px-2.5 py-1 rounded-full"><CheckCircle2 className="w-3 h-3" /> {statusLabel('completed', t)}</span>);
     case 'failed':
-      return (<span className="flex items-center gap-1 text-xs font-medium text-accent-red bg-accent-red/10 px-2.5 py-1 rounded-full"><XCircle className="w-3 h-3" /> {t('failed')}</span>);
+      return (<span className="flex items-center gap-1 text-xs font-medium text-accent-red bg-accent-red/10 px-2.5 py-1 rounded-full"><XCircle className="w-3 h-3" /> {statusLabel('failed', t)}</span>);
     case 'scraping':
     case 'filtering':
       return (<span className="flex items-center gap-1 text-xs font-medium text-accent-blue bg-accent-blue/10 px-2.5 py-1 rounded-full"><Loader2 className="w-3 h-3 animate-spin" /> <span className="hidden sm:inline">{status === 'scraping' ? t('extracting') : t('aiFilteringInProgress')}</span></span>);
     default:
-      return (<span className="flex items-center gap-1 text-xs font-medium text-text-muted bg-dark-card-hover px-2.5 py-1 rounded-full"><Clock className="w-3 h-3" /> {t('pending')}</span>);
+      return (<span className="flex items-center gap-1 text-xs font-medium text-text-muted bg-dark-card-hover px-2.5 py-1 rounded-full"><Clock className="w-3 h-3" /> {statusLabel('pending', t)}</span>);
   }
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return '--';
-  return new Date(dateStr).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
 
 const listItemVariants = {
   hidden: { opacity: 0, y: 10 },
@@ -43,7 +62,7 @@ const listItemVariants = {
 };
 
 export default function Tasks() {
-  const { t, isRTL } = useLang();
+  const { t, isRTL, lang } = useLang();
   const navigate = useNavigate();
   const [missions, setMissions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,10 +75,12 @@ export default function Tasks() {
   const selectionMode = selected.size > 0;
 
   useEffect(() => {
+    let cancelled = false;
     getMissions()
-      .then((data) => setMissions(data.missions || []))
-      .catch((err) => setPageError(formatError(err, t, 'errLoadMissions')))
-      .finally(() => setLoading(false));
+      .then((data) => { if (!cancelled) setMissions(Array.isArray(data?.missions) ? data.missions : []); })
+      .catch((err) => { if (!cancelled) setPageError(formatError(err, t, 'errLoadMissions')); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [t]);
 
   const toggleSelect = (id, e) => {
@@ -78,25 +99,35 @@ export default function Tasks() {
   };
 
   const handleDeleteSelected = async () => {
+    if (deleting) return;
     if (!window.confirm(t('deleteSelectedConfirm'))) return;
     setDeleting(true);
     setDeleteError(null);
-    try {
-      await Promise.all([...selected].map((id) => deleteMission(id)));
-      setMissions((prev) => prev.filter((m) => !selected.has(m.mission_id)));
-      setSelected(new Set());
-    } catch (err) {
-      setDeleteError(formatError(err, t, 'errDeleteMission'));
-    } finally {
-      setDeleting(false);
+    const ids = [...selected];
+    const results = await runLimited(ids, DELETE_CONCURRENCY, (id) => deleteMission(id));
+    // A 404 means the mission is already gone — that's the outcome we wanted.
+    const gone = new Set();
+    const failed = [];
+    results.forEach((r, i) => {
+      if (r.status === 'fulfilled' || r.reason?.response?.status === 404) gone.add(ids[i]);
+      else failed.push(r.reason);
+    });
+    setMissions((prev) => prev.filter((m) => !gone.has(m.mission_id)));
+    setSelected((prev) => new Set([...prev].filter((id) => !gone.has(id))));
+    if (failed.length) {
+      const reason = formatError(failed[0], t, 'errDeleteMission');
+      setDeleteError(ids.length > 1
+        ? `${t('errDeletePartial').replace('{n}', failed.length)} ${reason}`
+        : reason);
     }
+    setDeleting(false);
   };
 
   const allSelected = missions.length > 0 && selected.size === missions.length;
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="hidden lg:block">
+      <div className="hidden lg:block sticky top-0 z-20">
         <Header breadcrumbs={[t('dashboard'), t('tasks')]} />
       </div>
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
@@ -135,7 +166,7 @@ export default function Tasks() {
                 <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
                   allSelected ? 'bg-accent-green border-accent-green' : 'border-text-muted'
                 }`}>
-                  {allSelected && <Check className="w-3 h-3 text-dark-bg" />}
+                  {allSelected && <Check className="w-3 h-3 text-on-accent" />}
                 </div>
                 <span className="hidden sm:inline">{t('selectAll')}</span>
               </motion.button>
@@ -195,7 +226,7 @@ export default function Tasks() {
                       isSelected ? 'bg-accent-green border-accent-green' : 'border-text-muted/40 hover:border-text-muted'
                     }`}
                   >
-                    {isSelected && <Check className="w-3.5 h-3.5 text-dark-bg" />}
+                    {isSelected && <Check className="w-3.5 h-3.5 text-on-accent" />}
                   </div>
 
                   <div className="w-9 h-9 bg-accent-purple/10 rounded-lg items-center justify-center group-hover:bg-accent-purple/20 transition-colors flex-shrink-0 hidden sm:flex">
@@ -204,7 +235,7 @@ export default function Tasks() {
 
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-text-primary group-hover:text-accent-green transition-colors truncate">{m.keyword}</p>
-                    <p className="text-xs text-text-muted">{formatDate(m.created_at)}</p>
+                    <p className="text-xs text-text-muted">{formatDate(m.created_at, lang)}</p>
                   </div>
 
                   <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">

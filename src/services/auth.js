@@ -3,8 +3,13 @@ import axios from 'axios';
 // Proxied via Vite (dev) and Vercel rewrites (prod) to avoid CORS
 const AUTH_URL = '/auth-api';
 
+// Auth calls gate the whole app (AuthProvider renders nothing until the
+// startup refresh settles), so they must never hang indefinitely.
+export const AUTH_TIMEOUT_MS = 15000;
+
 const authApi = axios.create({
   baseURL: AUTH_URL,
+  timeout: AUTH_TIMEOUT_MS,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -39,6 +44,9 @@ export const refreshToken = async () => {
   if (!refresh) throw new Error('No refresh token');
   const { data } = await authApi.post('/api/auth/token/refresh/', { refresh });
   localStorage.setItem('access_token', data.access);
+  // Rotating refresh tokens (SimpleJWT ROTATE_REFRESH_TOKENS): the old one is
+  // blacklisted after use, so keep the new one or the next refresh fails.
+  if (data.refresh) localStorage.setItem('refresh_token', data.refresh);
   return data.access;
 };
 
@@ -153,31 +161,70 @@ export const getAccessToken = () => localStorage.getItem('access_token');
 
 export const getUser = () => {
   const raw = localStorage.getItem('user');
-  return raw ? JSON.parse(raw) : null;
+  if (!raw) return null;
+  try {
+    const user = JSON.parse(raw);
+    return user && typeof user === 'object' ? user : null;
+  } catch {
+    // Corrupted entry: drop it instead of crashing the whole app on startup.
+    localStorage.removeItem('user');
+    return null;
+  }
 };
 
 export const isAuthenticated = () => !!localStorage.getItem('access_token');
+
+/** Decode a base64url JWT segment (handles '-', '_' and missing padding + UTF-8). */
+export const decodeJwtPayload = (token) => {
+  const segment = String(token || '').split('.')[1];
+  if (!segment) throw new Error('Malformed token');
+  let b64 = segment.replace(/-/g, '+').replace(/_/g, '/');
+  while (b64.length % 4) b64 += '=';
+  const binary = atob(b64);
+  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+};
 
 // Check if access token is expired (3-day lifetime)
 export const isAccessExpired = () => {
   const token = getAccessToken();
   if (!token) return true;
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.exp * 1000 < Date.now();
+    const payload = decodeJwtPayload(token);
+    if (payload == null || typeof payload !== 'object') return true;
+    if (payload.exp == null) return false; // no expiry claim → never expires
+    const exp = Number(payload.exp);
+    if (!Number.isFinite(exp)) return true;
+    return exp * 1000 < Date.now();
   } catch {
     return true;
   }
 };
 
+// Only these answers from /token/refresh/ mean the refresh token itself is
+// bad. Anything else (network error, timeout, 5xx, 429) is transient and must
+// not destroy a still-valid session.
+const isRefreshRejected = (err) => {
+  const status = err?.response?.status;
+  return status === 400 || status === 401 || status === 403;
+};
+
 // Auto-refresh access token if expired but refresh token still valid (7-day lifetime)
 export const ensureValidToken = async () => {
   if (!isAccessExpired()) return true;
+  if (!localStorage.getItem('refresh_token')) {
+    logout();
+    return false;
+  }
   try {
     await refreshToken();
     return true;
-  } catch {
-    logout();
-    return false;
+  } catch (err) {
+    if (isRefreshRejected(err)) {
+      logout();
+      return false;
+    }
+    // Transient failure: keep the tokens; the next load retries the refresh.
+    return true;
   }
 };

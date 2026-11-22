@@ -26,4 +26,22 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
+  {
+    // Vitest files run under Node (jsdom): allow Node globals, and module-level
+    // mock state that tests reassign is not a React component concern.
+    files: ['**/__tests__/**/*.{js,jsx}', '**/*.test.{js,jsx}'],
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.node },
+    },
+    rules: {
+      'react-hooks/globals': 'off',
+    },
+  },
+  {
+    // Server-side code: the Vercel proxy function and the Vite configs.
+    files: ['api/**/*.js', 'vite.config.js', 'vite.local.config.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ])

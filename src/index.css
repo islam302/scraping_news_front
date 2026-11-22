@@ -1,49 +1,71 @@
 @import "tailwindcss";
 
+/*
+ * UNA Scraper design tokens.
+ * Token names (dark-bg, dark-card, accent-green…) are kept for compatibility
+ * with existing utility classes — they are theme-neutral roles, not literal colors.
+ * accent-green = the UNA brand green in both themes.
+ */
 @theme {
-  /* Dark theme (default) */
-  --color-dark-bg: #0f1419;
-  --color-dark-sidebar: #141a21;
-  --color-dark-card: #1a2332;
-  --color-dark-card-hover: #1f2b3d;
-  --color-dark-border: #2a3444;
-  --color-dark-input: #1a2332;
-  --color-accent-green: #c8f542;
-  --color-accent-blue: #3b82f6;
-  --color-accent-cyan: #06b6d4;
-  --color-accent-purple: #8b5cf6;
-  --color-accent-red: #ef4444;
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted: #64748b;
+  /* Dark theme (UNA night) */
+  --color-dark-bg: #0a1311;
+  --color-dark-sidebar: #0d1815;
+  --color-dark-card: #12201c;
+  --color-dark-card-hover: #1a2d27;
+  --color-dark-border: #1f332d;
+  --color-dark-input: #0f1b18;
+  --color-accent-green: #34c38f;
+  --color-accent-blue: #4f9cf7;
+  --color-accent-cyan: #2cc5c9;
+  --color-accent-purple: #9b87f5;
+  --color-accent-red: #f06060;
+  --color-text-primary: #eef5f2;
+  --color-text-secondary: #9fb5ad;
+  --color-text-muted: #66807a;
+  --color-on-accent: #04170f;
 
-  /* UNA brand colors */
-  --color-una-green: #1B6B3A;
-  --color-una-green-dark: #14532d;
-  --color-una-green-light: #22c55e;
+  /* UNA brand palette */
+  --color-una: #00704a;
+  --color-una-deep: #004d33;
+  --color-una-soft: #e6f2ec;
+
+  --font-sans: 'Inter', 'IBM Plex Sans Arabic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Light theme — UNA identity */
+:root {
+  --brand-rgb: 52 195 143;
+  --bg-pattern-opacity: 0.05;
+}
+
+/* Light theme — UNA identity: white surfaces, UNA green as the single brand color */
 [data-theme="light"] {
-  --color-dark-bg: #f0f2f5;
-  --color-dark-sidebar: #1B6B3A;
+  --brand-rgb: 0 112 74;
+  --bg-pattern-opacity: 0.07;
+  --color-dark-bg: #f4f7f5;
+  --color-dark-sidebar: #ffffff;
   --color-dark-card: #ffffff;
-  --color-dark-card-hover: #f7f9fb;
-  --color-dark-border: #e0e4ea;
-  --color-dark-input: #f5f7fa;
-  --color-accent-green: #1B6B3A;
-  --color-accent-blue: #2563eb;
-  --color-accent-cyan: #0891b2;
-  --color-accent-purple: #7c3aed;
-  --color-accent-red: #dc2626;
-  --color-text-primary: #1a1a2e;
-  --color-text-secondary: #4a5568;
-  --color-text-muted: #9ca3af;
+  --color-dark-card-hover: #f7faf8;
+  --color-dark-border: #e2e9e5;
+  --color-dark-input: #f7f9f8;
+  --color-accent-green: #00704a;
+  --color-accent-blue: #1d64d8;
+  --color-accent-cyan: #0b7f8a;
+  --color-accent-purple: #6d4fd8;
+  --color-accent-red: #d03a3a;
+  --color-text-primary: #10231c;
+  --color-text-secondary: #4b5f58;
+  --color-text-muted: #8a9a94;
+  --color-on-accent: #ffffff;
+}
+
+html[lang="ar"] body,
+[dir="rtl"] body {
+  font-family: 'IBM Plex Sans Arabic', 'Inter', sans-serif;
 }
 
 body {
   margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-sans);
   background-color: var(--color-dark-bg);
   color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
@@ -55,20 +77,46 @@ body {
   scroll-behavior: smooth;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--color-dark-sidebar); }
-::-webkit-scrollbar-thumb { background: var(--color-dark-border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #3a4454; }
+/* Brand backdrop: faint broadcast arcs radiating from the top corner (UNA signal motif) */
+.una-backdrop {
+  position: relative;
+  isolation: isolate;
+}
+.una-backdrop::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 100% 0%, transparent 0 140px, rgb(var(--brand-rgb) / var(--bg-pattern-opacity)) 141px 150px, transparent 151px),
+    radial-gradient(circle at 100% 0%, transparent 0 210px, rgb(var(--brand-rgb) / var(--bg-pattern-opacity)) 211px 222px, transparent 223px),
+    radial-gradient(circle at 100% 0%, transparent 0 290px, rgb(var(--brand-rgb) / var(--bg-pattern-opacity)) 291px 304px, transparent 305px),
+    radial-gradient(1200px 500px at 85% -10%, rgb(var(--brand-rgb) / 0.08), transparent 70%);
+}
+[dir="rtl"] .una-backdrop::before {
+  transform: scaleX(-1);
+}
 
-[data-theme="light"] ::-webkit-scrollbar-track { background: #f0f2f5; }
-[data-theme="light"] ::-webkit-scrollbar-thumb { background: #cbd5e1; }
-[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+/* Brand gradient strip used on hero cards */
+.una-strip {
+  background: linear-gradient(90deg, var(--color-una-deep), var(--color-una) 45%, #2fa877);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-dark-border); border-radius: 8px; border: 2px solid var(--color-dark-bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
 
 input:focus-visible,
 select:focus-visible,
 button:focus-visible {
   outline: none;
+}
+a:focus-visible,
+button:focus-visible {
+  box-shadow: 0 0 0 3px rgb(var(--brand-rgb) / 0.35);
 }
 
 select option {
@@ -76,18 +124,7 @@ select option {
   color: var(--color-text-primary);
 }
 
-/* Light theme cards */
+/* Light theme: cards get soft elevation instead of relying on borders */
 [data-theme="light"] .bg-dark-card {
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0,0,0,0.02);
-}
-
-/* Light theme: green buttons get white text */
-[data-theme="light"] .bg-accent-green {
-  color: #ffffff !important;
-}
-
-/* Light theme: green glow becomes green-tinted */
-[data-theme="light"] .hover\:shadow-\[0_0_20px_rgba\(200\,245\,66\,0\.25\)\]:hover,
-[data-theme="light"] .hover\:shadow-\[0_0_20px_rgba\(200\,245\,66\,0\.3\)\]:hover {
-  box-shadow: 0 0 20px rgba(27, 107, 58, 0.2);
+  box-shadow: 0 1px 2px rgba(16, 35, 28, 0.04), 0 4px 16px -6px rgba(16, 35, 28, 0.08);
 }

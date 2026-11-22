@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Wrench, RotateCcw } from 'lucide-react';
 import { useLang } from '../context/LangContext';
@@ -6,23 +6,41 @@ import { useMaintenance } from '../context/MaintenanceContext';
 import { checkApiHealth } from '../services/api';
 import Logo from '../components/Logo';
 
+// While this page is up no other request runs, so it probes on its own.
+const AUTO_RETRY_MS = 30000;
+
 export default function Maintenance() {
   const { t } = useLang();
   const { setDown } = useMaintenance();
   const [checking, setChecking] = useState(false);
+  const checkingRef = useRef(false);
+  const mountedRef = useRef(true);
 
-  const handleRetry = async () => {
-    if (checking) return;
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  const handleRetry = useCallback(async () => {
+    if (checkingRef.current) return; // double-click / timer overlap guard
+    checkingRef.current = true;
     setChecking(true);
     try {
+      // Resolves for any non-outage answer (even 401/404/429 = API reachable).
       await checkApiHealth();
-      setDown(false); // back online — fall through to the app
+      if (mountedRef.current) setDown(false); // back online — fall through to the app
     } catch {
       // still down — keep showing this page
     } finally {
-      setChecking(false);
+      checkingRef.current = false;
+      if (mountedRef.current) setChecking(false);
     }
-  };
+  }, [setDown]);
+
+  useEffect(() => {
+    const id = setInterval(handleRetry, AUTO_RETRY_MS);
+    return () => clearInterval(id);
+  }, [handleRetry]);
 
   return (
     <div className="min-h-screen bg-dark-bg flex items-center justify-center p-4">
@@ -55,7 +73,7 @@ export default function Maintenance() {
         <button
           onClick={handleRetry}
           disabled={checking}
-          className="inline-flex items-center gap-2 bg-accent-green text-dark-bg font-semibold px-6 py-2.5 rounded-lg text-sm hover:shadow-[0_0_20px_rgba(200,245,66,0.25)] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-2 bg-accent-green text-on-accent font-semibold px-6 py-2.5 rounded-lg text-sm hover:shadow-[0_0_20px_rgb(var(--brand-rgb)/0.25)] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <RotateCcw className={`w-4 h-4 ${checking ? 'animate-spin' : ''}`} />
           {checking ? t('maintChecking') : t('maintRetry')}

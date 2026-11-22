@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
-  const [theme, setThemeState] = useState(() => localStorage.getItem('theme') || 'dark');
+  const [theme, setThemeState] = useState(() => localStorage.getItem('theme') || 'light');
 
   const setTheme = useCallback((t) => {
     setThemeState(t);

@@ -22,33 +22,43 @@ export default function Dashboard() {
   // Backend caps categories per search (MAX_CATEGORIES_PER_REQUEST); 5 until discovery says otherwise.
   const [maxCategories, setMaxCategories] = useState(5);
 
+  // Sequence guard shared by the initial discovery and every site-list change:
+  // only the latest request may set the offered categories.
+  const listsRequest = useRef(0);
+
   useEffect(() => {
+    let cancelled = false;
+    const reqId = listsRequest.current;
     getCategories()
       .then((data) => {
-        if (data.available_categories?.length) setAvailableCategories(data.available_categories);
-        setSiteLists(data.site_lists || []);
-        if (Number(data.max_categories_per_request) > 0) setMaxCategories(Number(data.max_categories_per_request));
+        if (cancelled) return;
+        // A filtered (site-list) request started meanwhile owns the categories.
+        if (reqId === listsRequest.current && data?.available_categories?.length) {
+          setAvailableCategories(data.available_categories);
+        }
+        if (Array.isArray(data?.site_lists)) setSiteLists(data.site_lists);
+        if (Number(data?.max_categories_per_request) > 0) setMaxCategories(Number(data.max_categories_per_request));
       })
       .catch(() => { /* discovery is best-effort; the canonical fallback stays */ });
+    return () => { cancelled = true; };
   }, []);
 
   // Categories depend on the chosen site lists (e.g. the Gulf agencies have no
   // "security" section). Re-ask the backend whenever the selection changes so
   // the picker only offers categories that will actually be searched.
-  const listsRequest = useRef(0);
   const handleSiteListsChange = (lists) => {
     const reqId = ++listsRequest.current;
     getCategories({ siteLists: lists })
       .then((data) => {
         if (reqId !== listsRequest.current) return; // a newer selection won
-        setAvailableCategories(data.available_categories || []);
+        setAvailableCategories(Array.isArray(data?.available_categories) ? data.available_categories : []);
       })
       .catch(() => { /* keep the current list; the backend still skips unknown ones */ });
   };
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="hidden lg:block">
+      <div className="hidden lg:block sticky top-0 z-20">
         <Header breadcrumbs={[t('dashboard'), t('liveScraping')]} />
       </div>
 

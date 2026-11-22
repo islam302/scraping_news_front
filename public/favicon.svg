@@ -1,4 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="6" fill="#141a21"/>
-  <text x="16" y="22" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="18" fill="#c8f542">N</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <mask id="m">
+      <rect width="64" height="64" fill="white"/>
+      <circle cx="27.5" cy="37.5" r="13.2" fill="black"/>
+    </mask>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#ffffff"/>
+  <g transform="translate(5 3) scale(0.86)">
+  <g fill="none" stroke="#00704a" stroke-linecap="round" stroke-width="4.6">
+    <path d="M22 20 A22 22 0 0 1 44 42"/>
+    <path d="M22 12.5 A29.5 29.5 0 0 1 51.5 42"/>
+    <path d="M22 5 A37 37 0 0 1 59 42"/>
+  </g>
+  <circle cx="22" cy="42" r="17" fill="#00704a" mask="url(#m)"/>
+  <circle cx="26.5" cy="36.5" r="4.6" fill="none" stroke="#00704a" stroke-width="2.6"/>
+  <path d="M29.9 39.9 L33.6 43.6" stroke="#00704a" stroke-width="2.8" stroke-linecap="round"/>
+  </g>
 </svg>

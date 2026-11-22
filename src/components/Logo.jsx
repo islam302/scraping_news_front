@@ -1,62 +1,84 @@
+import { useId } from 'react';
 import { motion } from 'framer-motion';
-import { useTheme } from '../context/ThemeContext';
 
-export default function Logo({ size = 36, animate = true, variant }) {
-  const { isDark } = useTheme();
-  // variant: 'sidebar' uses white on green bg, 'brand' uses green on any bg
-  const color = variant === 'brand'
-    ? (isDark ? '#c8f542' : '#1B6B3A')
-    : (isDark ? '#c8f542' : '#ffffff');
-  const bgOpacity = isDark ? 0.1 : 0.15;
+/*
+ * UNA Scraper mark — derived from the UNA identity:
+ *   • the crescent (UNA / OIC),
+ *   • three broadcast arcs (news agencies transmitting),
+ *   • a search lens inside the crescent (our job: finding & monitoring that news).
+ * Drawn in currentColor so it follows the brand token of the active theme.
+ */
+const C = { x: 22, y: 42 }; // shared centre of crescent + arcs
+const ARCS = [22, 29.5, 37];
 
-  const arcVariants = animate
-    ? {
-        hidden: { pathLength: 0, opacity: 0 },
-        visible: (i) => ({
-          pathLength: 1, opacity: 1,
-          transition: { delay: 0.2 + i * 0.15, duration: 0.6, ease: 'easeOut' },
-        }),
-      }
-    : { hidden: { pathLength: 1, opacity: 1 }, visible: { pathLength: 1, opacity: 1 } };
+const arcPath = (r) => `M ${C.x} ${C.y - r} A ${r} ${r} 0 0 1 ${C.x + r} ${C.y}`;
 
-  const dotVariants = animate
-    ? { hidden: { scale: 0 }, visible: { scale: 1, transition: { delay: 0.1, duration: 0.4, type: 'spring', stiffness: 200 } } }
-    : { hidden: { scale: 1 }, visible: { scale: 1 } };
+export default function Logo({ size = 36, animate = true, className = 'text-accent-green', tile = false }) {
+  const maskId = useId();
 
-  const boltVariants = animate
-    ? { hidden: { opacity: 0, y: -4 }, visible: { opacity: 1, y: 0, transition: { delay: 0.7, duration: 0.4 } } }
-    : { hidden: { opacity: 1, y: 0 }, visible: { opacity: 1, y: 0 } };
+  const arc = (i) =>
+    animate
+      ? {
+          initial: { pathLength: 0, opacity: 0 },
+          animate: { pathLength: 1, opacity: [0, 1, 1, 0.35, 1] },
+          transition: {
+            pathLength: { delay: 0.15 + i * 0.15, duration: 0.55, ease: 'easeOut' },
+            opacity: { delay: 0.15 + i * 0.15, duration: 3.2, times: [0, 0.15, 0.6, 0.8, 1], repeat: Infinity, repeatDelay: 1.2 },
+          },
+        }
+      : {};
 
-  return (
-    <motion.svg width={size} height={size} viewBox="0 0 36 36" fill="none" initial="hidden" animate="visible">
-      <circle cx="18" cy="18" r="17" fill={color} fillOpacity={bgOpacity} />
+  const svg = (
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className} aria-label="UNA Scraper">
+      <defs>
+        <mask id={maskId}>
+          <rect width="64" height="64" fill="white" />
+          <circle cx={C.x + 5.5} cy={C.y - 4.5} r="13.2" fill="black" />
+        </mask>
+      </defs>
 
-      {[12, 9, 6].map((arcR, i) => (
+      {/* Crescent */}
+      <motion.circle
+        cx={C.x} cy={C.y} r="17" fill="currentColor" mask={`url(#${maskId})`}
+        initial={animate ? { scale: 0.6, opacity: 0 } : false}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 180, damping: 14 }}
+        style={{ transformOrigin: `${C.x}px ${C.y}px` }}
+      />
+
+      {/* Broadcast arcs */}
+      {ARCS.map((r, i) => (
         <motion.path
-          key={i}
-          d={`M ${18 - arcR} 18 A ${arcR} ${arcR} 0 0 1 18 ${18 - arcR}`}
-          stroke={color} strokeWidth={size * 0.055} strokeLinecap="round" fill="none"
-          custom={i} variants={arcVariants}
+          key={r}
+          d={arcPath(r)}
+          stroke="currentColor"
+          strokeWidth="4.6"
+          strokeLinecap="round"
+          {...arc(i)}
         />
       ))}
 
-      <motion.circle cx="18" cy="18" r="2.2" fill={color} variants={dotVariants} />
+      {/* Search lens in the crescent's hollow */}
+      <motion.g
+        initial={animate ? { scale: 0, opacity: 0 } : false}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 0.55, type: 'spring', stiffness: 220, damping: 12 }}
+        style={{ transformOrigin: '27px 37px' }}
+      >
+        <circle cx="26.5" cy="36.5" r="4.6" stroke="currentColor" strokeWidth="2.6" />
+        <path d="M29.9 39.9 L33.6 43.6" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" />
+      </motion.g>
+    </svg>
+  );
 
-      <motion.path
-        d="M25 10l-2 4h3l-2 4"
-        stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"
-        variants={boltVariants}
-      />
-
-      {animate && (
-        <motion.circle
-          cx="18" cy="18" r="15" stroke={color} strokeWidth="0.5" fill="none"
-          initial={{ opacity: 0.6, scale: 0.8 }}
-          animate={{ opacity: 0, scale: 1.15 }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
-          style={{ transformOrigin: '18px 18px' }}
-        />
-      )}
-    </motion.svg>
+  if (!tile) return svg;
+  // Tile variant: mark on a soft brand square (used in compact headers)
+  return (
+    <span
+      className="inline-flex items-center justify-center rounded-xl bg-accent-green/10 ring-1 ring-accent-green/15"
+      style={{ width: size + 12, height: size + 12 }}
+    >
+      {svg}
+    </span>
   );
 }

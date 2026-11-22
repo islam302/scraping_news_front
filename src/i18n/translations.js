@@ -1,8 +1,10 @@
 export const translations = {
   en: {
     // App
-    appName: 'Scrapine',
-    appTagline: 'AI News Intelligence',
+    appName: 'UNA Scraper',
+    appTagline: 'AI News Monitoring · UNA',
+    newMonitorTitle: 'Start a new monitoring run',
+    newMonitorDesc: 'Search member-state news agencies and let AI keep what matters',
 
     // Auth
     welcomeBack: 'Welcome back',
@@ -181,6 +183,20 @@ export const translations = {
     errDeleteMission:'Failed to delete the mission. Please try again.',
     errLoadSites:    'Failed to load sites. Please refresh the page.',
     errSaveList:     'Failed to save the list. Please try again.',
+    errRateLimit:    'Too many requests. Please wait a moment and try again.',
+    errRateLimitWait:'Too many requests. Please try again in {n} seconds.',
+    errTimeout:      'The server took too long to respond. Please try again.',
+    errDeletePartial:'{n} mission(s) could not be deleted. Please try again.',
+    categoryRowIncomplete: 'Each category needs both a key and a URL.',
+    statusPending:   'Pending',
+    statusScraping:  'Scraping',
+    statusFiltering: 'AI filtering',
+    statusCompleted: 'Completed',
+    statusFailed:    'Failed',
+    pageModeNone:    '(none)',
+    errBoundaryTitle:'Something went wrong',
+    errBoundaryMsg:  'An unexpected error occurred. Please try again.',
+    errBoundaryRetry:'Try Again',
 
     // Maintenance / service down
     maintTitle:    "We'll be right back",
@@ -195,8 +211,10 @@ export const translations = {
 
   ar: {
     // App
-    appName: 'سكرابين',
-    appTagline: 'ذكاء اصطناعي للأخبار',
+    appName: 'UNA Scraper',
+    appTagline: 'رصد الأخبار بالذكاء الاصطناعي',
+    newMonitorTitle: 'ابدأ عملية رصد جديدة',
+    newMonitorDesc: 'ابحث في وكالات أنباء الدول الأعضاء ودع الذكاء الاصطناعي يختار المهم',
 
     // Auth
     welcomeBack: 'مرحباً بعودتك',
@@ -375,6 +393,20 @@ export const translations = {
     errDeleteMission:'فشل حذف المهمة. يرجى المحاولة مجدداً.',
     errLoadSites:    'فشل تحميل المواقع. يرجى تحديث الصفحة.',
     errSaveList:     'فشل حفظ القائمة. يرجى المحاولة مجدداً.',
+    errRateLimit:    'عدد كبير من الطلبات. يرجى الانتظار قليلاً ثم المحاولة مجدداً.',
+    errRateLimitWait:'عدد كبير من الطلبات. يرجى المحاولة مجدداً بعد {n} ثانية.',
+    errTimeout:      'استغرق الخادم وقتاً طويلاً للرد. يرجى المحاولة مجدداً.',
+    errDeletePartial:'تعذّر حذف {n} من المهام. يرجى المحاولة مجدداً.',
+    categoryRowIncomplete: 'كل تصنيف يحتاج إلى مفتاح ورابط.',
+    statusPending:   'في الانتظار',
+    statusScraping:  'جاري الاستخراج',
+    statusFiltering: 'فلترة بالذكاء الاصطناعي',
+    statusCompleted: 'مكتملة',
+    statusFailed:    'فشلت',
+    pageModeNone:    '(بدون)',
+    errBoundaryTitle:'حدث خطأ ما',
+    errBoundaryMsg:  'حدث خطأ غير متوقع. يرجى المحاولة مجدداً.',
+    errBoundaryRetry:'إعادة المحاولة',
 
     // Maintenance / service down
     maintTitle:    'سنعود قريباً',

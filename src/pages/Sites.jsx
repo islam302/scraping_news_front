@@ -23,6 +23,10 @@ import {
 import { useLang } from '../context/LangContext';
 import { siteListLabel } from '../i18n/translations';
 import { formatError } from '../utils/errors';
+import { safeHttpUrl } from '../utils/url';
+
+// Google-only sources have no id; give every row a stable, unique React key.
+const siteKey = (site) => (site.id != null ? `id:${site.id}` : `name:${site.mode || ''}:${site.name}`);
 
 const cardVariants = {
   hidden: { opacity: 0, y: 10 },
@@ -44,9 +48,10 @@ export default function Sites() {
 
   const reloadSites = useCallback(() => {
     setLoadingSites(true);
+    setLoadError(null);
     const id = ++sitesReqId.current;
     return getCategorySites()
-      .then((data) => { if (id === sitesReqId.current) setSites(data.sites || []); })
+      .then((data) => { if (id === sitesReqId.current) setSites(Array.isArray(data?.sites) ? data.sites : []); })
       .catch((err) => { if (id === sitesReqId.current) setLoadError(formatError(err, t, 'errLoadSites')); })
       .finally(() => { if (id === sitesReqId.current) setLoadingSites(false); });
   }, [t]);
@@ -55,7 +60,7 @@ export default function Sites() {
     setLoadingLists(true);
     const id = ++listsReqId.current;
     return getCategorySiteLists()
-      .then((data) => { if (id === listsReqId.current) setSiteLists(data.site_lists || []); })
+      .then((data) => { if (id === listsReqId.current) setSiteLists(Array.isArray(data?.site_lists) ? data.site_lists : []); })
       .catch((err) => { if (id === listsReqId.current) setLoadError(formatError(err, t, 'errLoadSites')); })
       .finally(() => { if (id === listsReqId.current) setLoadingLists(false); });
   }, [t]);
@@ -67,7 +72,7 @@ export default function Sites() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="hidden lg:block">
+      <div className="hidden lg:block sticky top-0 z-20">
         <Header breadcrumbs={[t('dashboard'), t('sites')]} />
       </div>
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
@@ -124,6 +129,7 @@ function SitesTab({ sites, siteLists, loading, t, onChanged }) {
   const knownLists = siteLists.map((l) => l.name);
 
   const handleDelete = async (site) => {
+    if (site.id == null) return; // Google-only sources are not deletable rows
     if (!window.confirm(`${t('deleteSiteConfirm')}: ${site.name}?`)) return;
     setBusyId(site.id);
     setError(null);
@@ -153,7 +159,7 @@ function SitesTab({ sites, siteLists, loading, t, onChanged }) {
         </div>
         <motion.button
           onClick={() => setEditing({})}
-          className="flex items-center gap-2 bg-accent-green text-dark-bg font-semibold px-4 py-2 rounded-lg text-sm hover:shadow-[0_0_20px_rgba(200,245,66,0.3)] transition-all"
+          className="flex items-center gap-2 bg-accent-green text-on-accent font-semibold px-4 py-2 rounded-lg text-sm hover:shadow-[0_0_20px_rgb(var(--brand-rgb)/0.3)] transition-all"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
         >
@@ -181,7 +187,7 @@ function SitesTab({ sites, siteLists, loading, t, onChanged }) {
             const isGoogle = site.mode === 'google_search';
             return (
               <motion.div
-                key={site.id}
+                key={siteKey(site)}
                 custom={i}
                 initial="hidden"
                 animate="visible"
@@ -212,9 +218,9 @@ function SitesTab({ sites, siteLists, loading, t, onChanged }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
-                  {site.base_url && (
+                  {safeHttpUrl(site.base_url) && (
                     <a
-                      href={site.base_url}
+                      href={safeHttpUrl(site.base_url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       title={site.base_url}
@@ -223,10 +229,12 @@ function SitesTab({ sites, siteLists, loading, t, onChanged }) {
                       <ExternalLink className="w-4 h-4" />
                     </a>
                   )}
-                  {!isGoogle && (
-                    <IconButton onClick={() => setEditing(site)} label={t('editSite')} icon={Pencil} accent="green" disabled={busyId === site.id} />
+                  {!isGoogle && site.id != null && (
+                    <>
+                      <IconButton onClick={() => setEditing(site)} label={t('editSite')} icon={Pencil} accent="green" disabled={busyId != null && busyId === site.id} />
+                      <IconButton onClick={() => handleDelete(site)} label={t('deleteSelected')} icon={Trash2} accent="red" disabled={busyId != null && busyId === site.id} />
+                    </>
                   )}
-                  <IconButton onClick={() => handleDelete(site)} label={t('deleteSelected')} icon={Trash2} accent="red" disabled={busyId === site.id} />
                 </div>
               </motion.div>
             );
@@ -356,7 +364,7 @@ function ListsTab({ siteLists, sites, loading, t }) {
                           <p className="text-sm text-text-muted py-4 text-center">{t('noSitesInList')}</p>
                         ) : (
                           members.map((site) => (
-                            <div key={site.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-dark-card-hover transition-colors">
+                            <div key={siteKey(site)} className="flex items-center gap-2 p-2 rounded-lg hover:bg-dark-card-hover transition-colors">
                               <div className="w-7 h-7 bg-accent-blue/10 rounded-md flex items-center justify-center flex-shrink-0">
                                 <Globe className="w-3.5 h-3.5 text-accent-blue" />
                               </div>
@@ -364,9 +372,9 @@ function ListsTab({ siteLists, sites, loading, t }) {
                                 <p className="text-sm text-text-primary truncate">{site.name}</p>
                                 <p className="text-xs text-text-muted">{(site.categories || []).length} {t('categoryCount')}</p>
                               </div>
-                              {site.base_url && (
+                              {safeHttpUrl(site.base_url) && (
                                 <a
-                                  href={site.base_url}
+                                  href={safeHttpUrl(site.base_url)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   title={site.base_url}
@@ -395,7 +403,11 @@ function ListsTab({ siteLists, sites, loading, t }) {
 // Site create / edit modal
 // ============================================================================
 
-const PAGE_MODES = ['query', 'path', 'none'];
+// Pagination modes the crawler understands (crawler._page_url): '' = none /
+// single page (falls back to path-style if a page 2 is ever requested).
+const PAGE_MODES = ['query', 'path', 'wp', 'paged', ''];
+// Selector keys edited by the form; every other key is preserved untouched.
+const EDITABLE_SELECTORS = ['item', 'link', 'title', 'date'];
 
 function SiteFormModal({ site, knownLists, t, onClose, onSaved }) {
   const isNew = !site.id;
@@ -407,13 +419,15 @@ function SiteFormModal({ site, knownLists, t, onClose, onSaved }) {
   );
   const [isActive, setIsActive] = useState(site.is_active ?? true);
   const [js, setJs] = useState(site.js ?? false);
-  const [pageMode, setPageMode] = useState(site.page_mode || 'query');
-  const [selectors, setSelectors] = useState({
-    item: site.selectors?.item || '',
-    link: site.selectors?.link || '',
-    title: site.selectors?.title || '',
-    date: site.selectors?.date || '',
-  });
+  // Keep the stored mode exactly ('' and 'wp'/'paged' included); new sites default to 'query'.
+  const [pageMode, setPageMode] = useState(isNew ? 'query' : (site.page_mode ?? ''));
+  const pageModeOptions = PAGE_MODES.includes(pageMode) ? PAGE_MODES : [...PAGE_MODES, pageMode];
+  const originalSelectors = site.selectors && typeof site.selectors === 'object' && !Array.isArray(site.selectors)
+    ? site.selectors
+    : {};
+  const [selectors, setSelectors] = useState(() =>
+    Object.fromEntries(EDITABLE_SELECTORS.map((k) => [k, typeof originalSelectors[k] === 'string' ? originalSelectors[k] : ''])),
+  );
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -429,22 +443,35 @@ function SiteFormModal({ site, knownLists, t, onClose, onSaved }) {
       setError(t('baseUrlRequired'));
       return;
     }
-    // categories items require at least key + url
-    const cleanCategories = categories
-      .map((c) => ({ key: c.key.trim(), label: c.label.trim(), url: c.url.trim() }))
-      .filter((c) => c.key && c.url);
+    // categories items require at least key + url. Fully blank rows are
+    // ignored; a half-filled row is an error (never silently dropped).
+    const trimmed = categories.map((c) => ({ key: c.key.trim(), label: c.label.trim(), url: c.url.trim() }));
+    if (trimmed.some((c) => (c.key || c.label || c.url) && !(c.key && c.url))) {
+      setError(t('categoryRowIncomplete'));
+      return;
+    }
+    const cleanCategories = trimmed.filter((c) => c.key && c.url);
+
+    // Merge the edited selectors over the stored object so keys the form does
+    // not show (image, snippet, ...) survive the PATCH (it replaces `selectors`).
+    const mergedSelectors = { ...originalSelectors };
+    EDITABLE_SELECTORS.forEach((k) => {
+      const value = selectors[k].trim();
+      if (value || k in originalSelectors) mergedSelectors[k] = value;
+    });
 
     const payload = {
       name: name.trim(),
       base_url: baseUrl.trim(),
-      site_lists: siteListsStr.split(',').map((s) => s.trim()).filter(Boolean),
+      site_lists: [...new Set(siteListsStr.split(/[,،]/).map((s) => s.trim()).filter(Boolean))],
       categories: cleanCategories,
       is_active: isActive,
       js,
       page_mode: pageMode,
-      selectors,
+      selectors: mergedSelectors,
     };
 
+    if (saving) return;
     setSaving(true);
     setError(null);
     try {
@@ -535,7 +562,7 @@ function SiteFormModal({ site, knownLists, t, onClose, onSaved }) {
           <div className="flex items-center gap-4 flex-wrap">
             <Field label={t('pageMode')} inline>
               <select value={pageMode} onChange={(e) => setPageMode(e.target.value)} className={`${inputCls} w-32`}>
-                {PAGE_MODES.map((m) => <option key={m} value={m}>{m}</option>)}
+                {pageModeOptions.map((m) => <option key={m || '__none'} value={m}>{m || t('pageModeNone')}</option>)}
               </select>
             </Field>
             <Checkbox label={t('isActiveField')} checked={isActive} onChange={setIsActive} />
@@ -549,7 +576,7 @@ function SiteFormModal({ site, knownLists, t, onClose, onSaved }) {
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-dark-card-hover transition-colors">
             {t('cancel')}
           </button>
-          <button type="submit" disabled={saving} className="flex items-center gap-2 bg-accent-green text-dark-bg font-semibold px-4 py-2 rounded-lg text-sm hover:shadow-[0_0_20px_rgba(200,245,66,0.3)] transition-all disabled:opacity-50">
+          <button type="submit" disabled={saving} className="flex items-center gap-2 bg-accent-green text-on-accent font-semibold px-4 py-2 rounded-lg text-sm hover:shadow-[0_0_20px_rgb(var(--brand-rgb)/0.3)] transition-all disabled:opacity-50">
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
             {isNew ? t('create') : t('save')}
           </button>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Header from '../components/Header';
@@ -14,18 +14,16 @@ import {
   AlertTriangle,
   Sparkles,
 } from 'lucide-react';
-import { getMissionStatus, getDownloadUrl } from '../services/api';
+import { getMissionStatus, getDownloadUrl, downloadFile } from '../services/api';
 import { useLang } from '../context/LangContext';
 import { categoryLabel } from '../i18n/translations';
-import { formatError } from '../utils/errors';
+import { formatError, isRetriableError, getRetryAfterSeconds } from '../utils/errors';
+import { formatDate, statusLabel } from '../utils/format';
+import { safeHttpUrl, safeDownloadUrl } from '../utils/url';
 
-function formatDate(dateStr) {
-  if (!dateStr) return '--';
-  return new Date(dateStr).toLocaleString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  });
-}
+const POLL_INTERVAL = 3000;
+const MAX_POLL_BACKOFF = 30000;
+const ACTIVE = ['pending', 'scraping', 'filtering'];
 
 function StatusIcon({ status }) {
   switch (status) {
@@ -55,44 +53,83 @@ export default function MissionDetail() {
 
   const BackArrow = isRTL ? ArrowRight : ArrowLeft;
 
+  const tRef = useRef(t);
+  useEffect(() => { tRef.current = t; }, [t]);
+
+  // Load + poll the mission. Everything is scoped to this effect run: a
+  // `cancelled` flag drops late responses after the route changes / unmount,
+  // and polling is a setTimeout chain (never overlapping requests).
   useEffect(() => {
-    let interval;
-    const fetchMission = async () => {
+    let cancelled = false;
+    let timer = null;
+    let failures = 0;
+
+    setMission(null);
+    setError(null);
+    setLoading(true);
+
+    const schedule = (delay) => {
+      if (!cancelled) timer = setTimeout(poll, delay);
+    };
+
+    async function poll() {
+      timer = null;
+      try {
+        const updated = await getMissionStatus(missionId);
+        if (cancelled) return;
+        failures = 0;
+        setMission(updated);
+        if (ACTIVE.includes(updated?.status)) schedule(POLL_INTERVAL);
+      } catch (err) {
+        if (cancelled) return;
+        if (isRetriableError(err)) {
+          // 429 / 5xx / network: keep the last data on screen and back off.
+          failures += 1;
+          const retryAfter = getRetryAfterSeconds(err);
+          schedule(retryAfter != null
+            ? Math.max(retryAfter * 1000, POLL_INTERVAL)
+            : Math.min(POLL_INTERVAL * 2 ** failures, MAX_POLL_BACKOFF));
+          return;
+        }
+        // 404 (deleted elsewhere) / 401 / 403: stop polling and say why.
+        setError(formatError(err, tRef.current, 'errGeneric'));
+      }
+    }
+
+    (async () => {
       try {
         const data = await getMissionStatus(missionId);
+        if (cancelled) return;
         setMission(data);
         setLoading(false);
-        if (['pending', 'scraping', 'filtering'].includes(data.status)) {
-          interval = setInterval(async () => {
-            try {
-              const updated = await getMissionStatus(missionId);
-              setMission(updated);
-              if (['completed', 'failed'].includes(updated.status)) clearInterval(interval);
-            } catch { /* ignore */ }
-          }, 3000);
-        }
+        if (ACTIVE.includes(data?.status)) schedule(POLL_INTERVAL);
       } catch (err) {
-        setError(formatError(err, t, 'errGeneric'));
+        if (cancelled) return;
+        setError(formatError(err, tRef.current, 'errGeneric'));
         setLoading(false);
       }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
     };
-    fetchMission();
-    return () => clearInterval(interval);
-  }, [missionId, t]);
+  }, [missionId]);
 
   const progress = mission?.progress || {};
   const total = progress.total || 0;
   const done = progress.done || 0;
-  const percent = mission?.status === 'completed' ? 100 : total > 0 ? Math.round((done / total) * 100) : 0;
+  const percent = mission?.status === 'completed' ? 100 : total > 0 ? Math.min(100, Math.max(0, Math.round((done / total) * 100))) : 0;
   const isActive = mission && ['pending', 'scraping', 'filtering'].includes(mission.status);
   const results = mission?.results || [];
+  const downloadUrl = safeDownloadUrl(getDownloadUrl(mission?.excel_download));
   const addedCategories = Array.isArray(mission?.site_stats?.categories_added)
     ? mission.site_stats.categories_added
     : [];
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="hidden lg:block">
+      <div className="hidden lg:block sticky top-0 z-20">
         <Header breadcrumbs={[t('dashboard'), t('tasks'), mission?.keyword || '...']} />
       </div>
 
@@ -130,22 +167,22 @@ export default function MissionDetail() {
                 <h2 className="text-base sm:text-lg font-bold text-text-primary break-words">{mission.keyword}</h2>
                 <span className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full whitespace-nowrap self-start ${statusColor(mission.status)}`}>
                   <StatusIcon status={mission.status} />
-                  {mission.status}
+                  {statusLabel(mission.status, t)}
                 </span>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                 <div>
                   <p className="text-xs text-text-muted mb-0.5">{t('status')}</p>
-                  <p className="text-sm text-text-primary capitalize">{mission.status}</p>
+                  <p className="text-sm text-text-primary capitalize">{statusLabel(mission.status, t)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-text-muted mb-0.5">{t('created')}</p>
-                  <p className="text-sm text-text-primary">{formatDate(mission.created_at)}</p>
+                  <p className="text-sm text-text-primary">{formatDate(mission.created_at, lang)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-text-muted mb-0.5">{t('completed')}</p>
-                  <p className="text-sm text-text-primary">{formatDate(mission.completed_at)}</p>
+                  <p className="text-sm text-text-primary">{formatDate(mission.completed_at, lang)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-text-muted mb-0.5">{t('results')}</p>
@@ -192,9 +229,9 @@ export default function MissionDetail() {
                 </div>
               )}
 
-              {mission.excel_download && (
+              {downloadUrl && (
                 <motion.button
-                  onClick={() => window.open(getDownloadUrl(mission.excel_download), '_blank')}
+                  onClick={() => { downloadFile(downloadUrl).catch(() => {}); }}
                   className="mt-4 flex items-center gap-2 bg-accent-green/10 text-accent-green px-4 sm:px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-accent-green/20 transition-all duration-300"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.97 }}
@@ -212,21 +249,24 @@ export default function MissionDetail() {
                   {t('results')} <span className="text-text-muted font-normal text-sm">({results.length})</span>
                 </h3>
                 <div className="space-y-2">
-                  {results.map((r, i) => (
+                  {results.map((r, i) => {
+                    const link = safeHttpUrl(r?.Link);
+                    const image = safeHttpUrl(r?.Image);
+                    return (
                     <motion.a
                       key={i}
-                      href={r.Link || '#'}
-                      target="_blank"
+                      href={link || undefined}
+                      target={link ? '_blank' : undefined}
                       rel="noopener noreferrer"
-                      className={`bg-dark-card border border-dark-border rounded-xl p-3 sm:p-4 flex items-start gap-3 sm:gap-4 hover:border-accent-green/20 transition-all duration-200 group block ${r.Link ? 'cursor-pointer' : 'cursor-default'}`}
+                      className={`bg-dark-card border border-dark-border rounded-xl p-3 sm:p-4 flex items-start gap-3 sm:gap-4 hover:border-accent-green/20 transition-all duration-200 group block ${link ? 'cursor-pointer' : 'cursor-default'}`}
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.02 }}
                     >
-                      {r.Image && (
+                      {image && (
                         <div className="w-20 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-dark-border">
                           <img
-                            src={r.Image}
+                            src={image}
                             alt={r.Title}
                             className="w-full h-full object-cover"
                             onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement.style.display = 'none'; }}
@@ -241,17 +281,18 @@ export default function MissionDetail() {
                           <p className="text-xs text-text-secondary mt-1 break-words">{r.Paragraph}</p>
                         )}
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
-                          <span className="text-[11px] text-dark-bg bg-accent-green/80 px-1.5 py-0.5 rounded font-medium">
-                            {r.Site?.replace(/\s*\(Google\)/gi, '')}
+                          <span className="text-[11px] text-on-accent bg-accent-green/80 px-1.5 py-0.5 rounded font-medium">
+                            {typeof r.Site === 'string' ? r.Site.replace(/\s*\(Google\)/gi, '') : ''}
                           </span>
                           {r.Date && <span className="text-xs text-text-muted">{r.Date}</span>}
                         </div>
                       </div>
-                      {r.Link && (
+                      {link && (
                         <ExternalLink className="w-4 h-4 text-text-muted group-hover:text-accent-blue transition-colors flex-shrink-0 mt-1" />
                       )}
                     </motion.a>
-                  ))}
+                    );
+                  })}
                 </div>
               </motion.div>
             )}

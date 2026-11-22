@@ -19,7 +19,7 @@ export default function LiveScrapingStatus({ mission }) {
   const progress = mission?.progress || {};
   const total = progress.total || 0;
   const done = progress.done || 0;
-  const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+  const percent = total > 0 ? Math.min(100, Math.max(0, Math.round((done / total) * 100))) : 0;
   const isActive = mission && ['pending', 'scraping', 'filtering'].includes(mission.status);
 
   let statusText = t('liveScrapingStatus');
