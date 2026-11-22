@@ -5,16 +5,18 @@
 //   SCRAPING_API_KEY        Service API key for the scraping API (server-side secret).
 // Optional:
 //   SCRAPING_API_UPSTREAM   default https://una-ai-tools-apis.una-oic.org/scraping-api
-//   AUTH_VERIFY_URL         default https://una-ai-tools-apis.una-oic.org/auth-api/api/auth/token/verify/
+//   AUTH_PROFILE_URL        default https://una-ai-tools-apis.una-oic.org/auth-api/api/auth/profile/
 import { createProxyHandler, createTokenVerifier } from './_lib/proxyCore.js';
 
 const UPSTREAM = process.env.SCRAPING_API_UPSTREAM
   || 'https://una-ai-tools-apis.una-oic.org/scraping-api';
-const VERIFY_URL = process.env.AUTH_VERIFY_URL
-  || 'https://una-ai-tools-apis.una-oic.org/auth-api/api/auth/token/verify/';
+// The auth service has no /token/verify/ endpoint; /profile/ is what the
+// scraping API itself uses to validate a Bearer token.
+const PROFILE_URL = process.env.AUTH_PROFILE_URL
+  || 'https://una-ai-tools-apis.una-oic.org/auth-api/api/auth/profile/';
 
 export default createProxyHandler({
   upstream: UPSTREAM,
   apiKey: process.env.SCRAPING_API_KEY,
-  verifyToken: createTokenVerifier({ verifyUrl: VERIFY_URL }),
+  verifyToken: createTokenVerifier({ profileUrl: PROFILE_URL }),
 });

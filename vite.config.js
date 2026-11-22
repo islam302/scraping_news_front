@@ -42,7 +42,7 @@ export default defineConfig({
     scrapingProxyPlugin({
       upstream: `${REMOTE}/scraping-api`,
       apiKey: serverEnv('SCRAPING_API_KEY'),
-      verifyToken: createTokenVerifier({ verifyUrl: `${REMOTE}/auth-api/api/auth/token/verify/` }),
+      verifyToken: createTokenVerifier({ profileUrl: `${REMOTE}/auth-api/api/auth/profile/` }),
     }),
   ],
   server: {

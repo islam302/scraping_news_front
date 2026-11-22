@@ -13,7 +13,8 @@
 //      sibling services on the upstream host).
 //   2. Only known HTTP methods; request bodies are capped.
 //   3. Missing/expired/invalid Bearer token → 401 (nothing reaches upstream).
-//      Tokens are verified with the auth service and cached until expiry.
+//      Tokens are verified against the auth service's /profile/ endpoint and
+//      cached until expiry.
 //   4. The user's Authorization header is forwarded (per-user identity on the
 //      backend → per-user rate limits and owner scoping), plus the client IP
 //      as X-Forwarded-For / X-Real-IP (taken from the platform, not from the
@@ -139,10 +140,16 @@ const readBody = async (req, maxBytes) => {
 };
 
 /**
- * Token verifier backed by the auth service's /token/verify/ endpoint, with an
- * in-memory cache (valid until min(exp, 5 min); rejections for 30 s).
+ * Token verifier backed by the auth service's profile endpoint
+ * (GET <profileUrl> with the Bearer token — the same check the scraping API
+ * itself uses), with an in-memory cache (valid until min(exp, 5 min);
+ * rejections for 30 s).
+ *
+ * 200 → valid. 401/403 → invalid (cached). Anything else (404, 5xx, network
+ * error, timeout) means the auth service can't answer: fail closed with 503
+ * rather than telling a signed-in user their session expired.
  */
-export const createTokenVerifier = ({ verifyUrl, fetchImpl = globalThis.fetch, timeoutMs = 10000, now = () => Date.now() } = {}) => {
+export const createTokenVerifier = ({ profileUrl, fetchImpl = globalThis.fetch, timeoutMs = 10000, now = () => Date.now() } = {}) => {
   const cache = new Map(); // token -> { ok, until }
 
   const remember = (token, ok, until) => {
@@ -168,10 +175,9 @@ export const createTokenVerifier = ({ verifyUrl, fetchImpl = globalThis.fetch, t
     const timer = setTimeout(() => ctrl.abort(), timeoutMs);
     let res;
     try {
-      res = await fetchImpl(verifyUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
+      res = await fetchImpl(profileUrl, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
         signal: ctrl.signal,
       });
     } catch {
@@ -180,13 +186,15 @@ export const createTokenVerifier = ({ verifyUrl, fetchImpl = globalThis.fetch, t
     } finally {
       clearTimeout(timer);
     }
-    if (res.status >= 500) {
+    if (res.status === 401 || res.status === 403) {
+      remember(token, false, t + REJECTED_TTL_MS);
+      return false;
+    }
+    if (res.status < 200 || res.status >= 300) {
       throw new ProxyError(503, 'Authentication service unavailable', 'auth_unavailable');
     }
-    const ok = res.status >= 200 && res.status < 300;
-    const until = ok ? Math.min(expMs ?? Infinity, t + VERIFIED_TTL_MS) : t + REJECTED_TTL_MS;
-    remember(token, ok, until);
-    return ok;
+    remember(token, true, Math.min(expMs ?? Infinity, t + VERIFIED_TTL_MS));
+    return true;
   };
   verify._cache = cache;
   return verify;

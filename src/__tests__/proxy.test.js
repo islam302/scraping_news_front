@@ -181,7 +181,7 @@ describe('authentication (FE-01: no open relay)', () => {
   });
 
   it('503 when the auth service is down (fail closed)', async () => {
-    const verifier = createTokenVerifier({ verifyUrl: 'https://auth.test/v', fetchImpl: vi.fn(async () => { throw new Error('ECONNREFUSED'); }) });
+    const verifier = createTokenVerifier({ profileUrl: 'https://auth.test/v', fetchImpl: vi.fn(async () => { throw new Error('ECONNREFUSED'); }) });
     const res = await call({ url: '/scraping-api/api/missions/' }, build({ verifyToken: verifier }));
     expect(res.statusCode).toBe(503);
     expect(fetchMock).not.toHaveBeenCalled();
@@ -220,7 +220,7 @@ describe('configuration', () => {
     const calls = [];
     globalThis.fetch = vi.fn(async (url, init) => {
       calls.push([url, init]);
-      if (String(url).includes('/token/verify/')) return { status: 200 };
+      if (String(url).includes('/auth/profile/')) return { status: 200 };
       return upstreamRes();
     });
     try {
@@ -228,7 +228,8 @@ describe('configuration', () => {
       const res = makeRes();
       await vercelHandler(makeReq({ url: '/scraping-api/api/missions/' }), res);
       expect(res.statusCode).toBe(200);
-      expect(calls[0][0]).toMatch(/\/auth-api\/api\/auth\/token\/verify\/$/);
+      expect(calls[0][0]).toBe('https://una-ai-tools-apis.una-oic.org/auth-api/api/auth/profile/');
+      expect(calls[0][1].headers.Authorization).toBe(`Bearer ${GOOD}`);
       expect(calls[1][0]).toBe('https://una-ai-tools-apis.una-oic.org/scraping-api/api/missions/');
       expect(calls[1][1].headers['X-API-Key']).toBe('from-env');
     } finally {
@@ -406,7 +407,7 @@ describe('client IP', () => {
 describe('token verifier', () => {
   let authFetch;
   let now;
-  const mk = () => createTokenVerifier({ verifyUrl: 'https://auth.test/verify/', fetchImpl: authFetch, now: () => now });
+  const mk = () => createTokenVerifier({ profileUrl: 'https://auth.test/profile/', fetchImpl: authFetch, now: () => now });
 
   beforeEach(() => {
     now = Date.now();
@@ -414,14 +415,40 @@ describe('token verifier', () => {
   });
   afterEach(() => vi.useRealTimers());
 
-  it('posts the token to the verify endpoint and caches a valid result', async () => {
+  it('checks the token with GET /profile/ (Bearer) and caches a valid result', async () => {
     const v = mk();
     expect(await v(GOOD)).toBe(true);
     expect(await v(GOOD)).toBe(true);
     expect(authFetch).toHaveBeenCalledTimes(1);
     const [url, init] = authFetch.mock.calls[0];
-    expect(url).toBe('https://auth.test/verify/');
-    expect(JSON.parse(init.body)).toEqual({ token: GOOD });
+    expect(url).toBe('https://auth.test/profile/');
+    expect(init.method).toBe('GET');
+    expect(init.headers.Authorization).toBe(`Bearer ${GOOD}`);
+    expect(init.body).toBeUndefined();
+  });
+
+  it.each([401, 403])('%i from the auth service means the token is invalid', async (status) => {
+    authFetch.mockResolvedValue({ status });
+    expect(await mk()(GOOD)).toBe(false);
+  });
+
+  it.each([404, 400, 405, 302])(
+    'regression: a %i from the auth service is NOT treated as an expired session (503 instead)',
+    async (status) => {
+      // Production incident: the verifier hit a non-existent endpoint (404)
+      // and every signed-in user was told their session had expired.
+      authFetch.mockResolvedValue({ status });
+      await expect(mk()(GOOD)).rejects.toMatchObject({ status: 503, code: 'auth_unavailable' });
+    },
+  );
+
+  it('a 404 from the auth service surfaces as 503 from the proxy, never 401', async () => {
+    const res = await call(
+      { url: '/scraping-api/api/missions/' },
+      build({ verifyToken: createTokenVerifier({ profileUrl: 'https://auth.test/p', fetchImpl: async () => ({ status: 404 }) }) }),
+    );
+    expect(res.statusCode).toBe(503);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('re-verifies after the 5-minute cache window', async () => {
@@ -477,7 +504,7 @@ describe('token verifier', () => {
     const hung = vi.fn((_u, init) => new Promise((_r, reject) => {
       init.signal.addEventListener('abort', () => reject(new Error('aborted')));
     }));
-    const v = createTokenVerifier({ verifyUrl: 'https://auth.test/v', fetchImpl: hung, timeoutMs: 20 });
+    const v = createTokenVerifier({ profileUrl: 'https://auth.test/v', fetchImpl: hung, timeoutMs: 20 });
     await expect(v(GOOD)).rejects.toMatchObject({ status: 503 });
   });
 
